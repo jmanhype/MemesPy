@@ -1,0 +1,66 @@
+# Python Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Environment Variables and Credentials
+.env
+.env.*
+*.env
+!.env.example
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+
+# Logs
+logs/
+*.log
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Local development
+instance/
+.webassets-cache
+
+# OpenAI specific
+openai_api_key.txt
+
+# Large binaries and data files
+*.dylib
+*.dll
+*.so
+*.pyd
+*.bin
+*.model
+*.pkl
+*.h5 
