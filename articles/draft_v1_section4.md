@@ -1,3 +1,9 @@
+---
+last_updated: 2024-03-19
+version: 1.0
+status: draft
+---
+
 # DSPy Meme Generator: Using AI to Create Intelligent Memes
 
 ## 4. Implementation Details
