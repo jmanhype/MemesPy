@@ -1,0 +1,98 @@
+# DSPy Meme Generation Quality Assurance Configuration
+
+# Type Checking Configuration
+type_checking:
+  mypy:
+    python_version: "3.9"
+    disallow_untyped_defs: true
+    disallow_incomplete_defs: true
+    check_untyped_defs: true
+    disallow_untyped_decorators: true
+    no_implicit_optional: true
+    warn_redundant_casts: true
+    warn_unused_ignores: true
+    warn_return_any: true
+    warn_unreachable: true
+    strict_optional: true
+    plugins:
+      - "sqlalchemy.ext.mypy.plugin"
+      - "pydantic.mypy"
+
+# Linting Configuration
+linting:
+  ruff:
+    line-length: 88
+    target-version: "py39"
+    select:
+      - "E"   # pycodestyle errors
+      - "F"   # pyflakes
+      - "B"   # flake8-bugbear
+      - "I"   # isort
+      - "C"   # flake8-comprehensions
+      - "UP"  # pyupgrade
+      - "D"   # pydocstyle
+    ignore: []
+    per-file-ignores: {}
+    pydocstyle:
+      convention: "google"
+    isort:
+      known-first-party: ["dspy_meme_gen"]
+      section-order: ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+# Code Coverage Requirements
+coverage:
+  minimum_coverage: 90
+  exclude_paths:
+    - "tests/*"
+    - "setup.py"
+    - "docs/*"
+  fail_under: 85
+  report_types:
+    - "term-missing"
+    - "html"
+    - "xml"
+  branch: true
+  show_missing: true
+
+# Performance Benchmarks
+benchmarks:
+  meme_generation:
+    max_latency_p95: 5000  # milliseconds
+    max_latency_p99: 8000  # milliseconds
+    min_throughput: 10     # requests per second
+  database:
+    max_query_time_p95: 100  # milliseconds
+    max_query_time_p99: 200  # milliseconds
+    max_pool_usage: 80       # percentage
+  redis:
+    max_latency_p95: 10    # milliseconds
+    max_latency_p99: 50    # milliseconds
+    max_memory_usage: 80   # percentage
+  external_services:
+    openai:
+      max_latency: 2000    # milliseconds
+      timeout: 10000       # milliseconds
+    cloudinary:
+      max_latency: 1000    # milliseconds
+      timeout: 5000        # milliseconds
+
+# Code Quality Metrics
+quality_metrics:
+  complexity:
+    max_cyclomatic_complexity: 10
+    max_cognitive_complexity: 15
+    max_maintainability_index: 20
+  documentation:
+    min_docstring_coverage: 90
+    required_docstring_sections:
+      - "Args"
+      - "Returns"
+      - "Raises"
+  dependencies:
+    max_direct_dependencies: 20
+    require_pinned_versions: true
+    security_check: true
+  testing:
+    min_test_cases_per_function: 2
+    require_property_based_tests: true
+    require_integration_tests: true 

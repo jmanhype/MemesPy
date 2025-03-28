@@ -1,0 +1,208 @@
+# DSPy Meme Generation Deployment Configuration
+
+# Environment Configuration
+environments:
+  production:
+    app:
+      host: "0.0.0.0"
+      port: 8000
+      workers: 4
+      timeout: 120
+      max_requests: 1000
+      max_requests_jitter: 50
+      log_level: "INFO"
+      cors_origins: 
+        - "https://your-frontend-domain.com"
+      trusted_hosts:
+        - "api.your-domain.com"
+      
+    database:
+      url: "postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/${DB_NAME}"
+      pool_size: 20
+      max_overflow: 10
+      pool_timeout: 30
+      pool_recycle: 1800
+      echo: false
+      
+    redis:
+      url: "redis://${REDIS_HOST}:6379/0"
+      pool_size: 20
+      socket_timeout: 5
+      socket_connect_timeout: 5
+      retry_on_timeout: true
+      health_check_interval: 30
+      
+    external_services:
+      openai:
+        api_key: "${OPENAI_API_KEY}"
+        timeout: 30
+        max_retries: 3
+        backoff_factor: 2
+      cloudinary:
+        cloud_name: "${CLOUDINARY_CLOUD_NAME}"
+        api_key: "${CLOUDINARY_API_KEY}"
+        api_secret: "${CLOUDINARY_API_SECRET}"
+        
+    monitoring:
+      prometheus:
+        port: 9090
+        retention_time: "15d"
+        storage_path: "/var/lib/prometheus"
+        scrape_interval: "15s"
+        evaluation_interval: "15s"
+      grafana:
+        port: 3000
+        admin_password: "${GRAFANA_ADMIN_PASSWORD}"
+        plugins:
+          - "grafana-piechart-panel"
+          - "grafana-worldmap-panel"
+      sentry:
+        dsn: "${SENTRY_DSN}"
+        traces_sample_rate: 0.1
+        
+    scaling:
+      autoscaling:
+        enabled: true
+        min_replicas: 2
+        max_replicas: 10
+        target_cpu_utilization: 70
+        target_memory_utilization: 80
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "512Mi"
+        limits:
+          cpu: "2000m"
+          memory: "2Gi"
+          
+    backup:
+      database:
+        schedule: "0 2 * * *"  # Daily at 2 AM
+        retention_days: 30
+        storage:
+          type: "s3"
+          bucket: "${BACKUP_BUCKET}"
+          path: "database_backups"
+          
+      media:
+        schedule: "0 3 * * *"  # Daily at 3 AM
+        retention_days: 90
+        storage:
+          type: "s3"
+          bucket: "${BACKUP_BUCKET}"
+          path: "media_backups"
+          
+    health_checks:
+      enabled: true
+      endpoints:
+        - path: "/health"
+          interval: 30
+          timeout: 5
+          retries: 3
+        - path: "/health/db"
+          interval: 60
+          timeout: 10
+          retries: 2
+        - path: "/health/redis"
+          interval: 60
+          timeout: 5
+          retries: 2
+      readiness_probe:
+        initial_delay: 30
+        period: 10
+        timeout: 5
+        success_threshold: 1
+        failure_threshold: 3
+      liveness_probe:
+        initial_delay: 60
+        period: 30
+        timeout: 10
+        success_threshold: 1
+        failure_threshold: 3
+        
+    security:
+      ssl:
+        enabled: true
+        cert_path: "/etc/ssl/certs/your-domain.crt"
+        key_path: "/etc/ssl/private/your-domain.key"
+      rate_limiting:
+        enabled: true
+        default_limit: "100/minute"
+        burst: 50
+      ddos_protection:
+        enabled: true
+        max_conn_per_ip: 100
+        conn_lifetime: 3600
+        
+    caching:
+      redis_cache:
+        default_ttl: 3600
+        max_memory: "1gb"
+        max_memory_policy: "allkeys-lru"
+        key_prefixes:
+          templates: "template:"
+          memes: "meme:"
+          trends: "trend:"
+      response_cache:
+        enabled: true
+        ttl: 300
+        vary_by: ["Authorization"]
+        
+    logging:
+      format: "json"
+      output:
+        - type: "file"
+          path: "/var/log/dspy-meme-gen/app.log"
+          max_size: "100M"
+          max_backups: 10
+          max_age: 30
+        - type: "stdout"
+      levels:
+        root: "INFO"
+        uvicorn: "INFO"
+        sqlalchemy: "WARNING"
+        
+    maintenance:
+      cleanup:
+        temp_files:
+          enabled: true
+          max_age: 24  # hours
+          schedule: "0 * * * *"  # Every hour
+        old_memes:
+          enabled: true
+          max_age: 90  # days
+          schedule: "0 4 * * *"  # Daily at 4 AM
+          
+  staging:
+    # Inherit from production with overrides
+    <<: *production
+    app:
+      workers: 2
+      cors_origins: 
+        - "https://staging.your-frontend-domain.com"
+    scaling:
+      autoscaling:
+        min_replicas: 1
+        max_replicas: 3
+    backup:
+      database:
+        retention_days: 7
+      media:
+        retention_days: 30
+
+  development:
+    # Development-specific settings
+    app:
+      host: "localhost"
+      port: 8000
+      workers: 1
+      cors_origins: 
+        - "http://localhost:3000"
+    database:
+      echo: true
+    monitoring:
+      enabled: false
+    scaling:
+      enabled: false
+    backup:
+      enabled: false 

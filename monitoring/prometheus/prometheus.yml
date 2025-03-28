@@ -1,0 +1,135 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'meme_generation'
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['localhost:8000']
+        labels:
+          environment: 'development'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+)(:[0-9]+)?'
+        replacement: '${1}'
+
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['localhost:9100']
+        labels:
+          environment: 'development'
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['localhost:8080']
+        labels:
+          environment: 'development'
+
+  - job_name: 'redis_exporter'
+    static_configs:
+      - targets: ['localhost:9121']
+        labels:
+          environment: 'development'
+
+  - job_name: 'postgres_exporter'
+    static_configs:
+      - targets: ['localhost:9187']
+        labels:
+          environment: 'development'
+
+# Alert rules
+alerting_rules:
+  groups:
+    - name: meme_generation_alerts
+      rules:
+        - alert: HighErrorRate
+          expr: |
+            sum(rate(meme_generation_seconds_count{status="error"}[5m])) 
+            / 
+            sum(rate(meme_generation_seconds_count[5m])) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: High error rate in meme generation
+            description: Error rate is above 10% for the last 5 minutes
+
+        - alert: SlowMemeGeneration
+          expr: |
+            histogram_quantile(0.95, sum(rate(meme_generation_seconds_bucket[5m])) by (le)) > 10
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Slow meme generation
+            description: 95th percentile of meme generation time is above 10 seconds
+
+        - alert: HighExternalServiceErrors
+          expr: |
+            sum(rate(external_service_errors_total[5m])) by (service_name) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: High external service error rate
+            description: External service {{ $labels.service_name }} has high error rate
+
+        - alert: AgentFailures
+          expr: |
+            sum(rate(agent_failures_total[5m])) by (agent_name) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: High agent failure rate
+            description: Agent {{ $labels.agent_name }} has high failure rate
+
+        - alert: HighCacheMissRate
+          expr: |
+            sum(rate(cache_operations_total{operation="miss"}[5m])) 
+            / 
+            sum(rate(cache_operations_total[5m])) > 0.5
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: High cache miss rate
+            description: Cache miss rate is above 50% for the last 5 minutes
+
+        - alert: DatabaseLatency
+          expr: |
+            histogram_quantile(0.95, sum(rate(db_operation_latency_seconds_bucket[5m])) by (le)) > 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: High database latency
+            description: 95th percentile of database operation latency is above 1 second
+
+        - alert: HighResourceUsage
+          expr: |
+            resource_usage{resource_type=~"cpu|memory"} > 80
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: High resource usage
+            description: {{ $labels.resource_type }} usage is above 80% 
