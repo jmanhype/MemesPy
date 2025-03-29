@@ -66,6 +66,22 @@ python -m uvicorn src.dspy_meme_gen.api.final_app:app --port 8081
 
 The API will be available at `http://127.0.0.1:8081/`. The documentation is accessible at `http://127.0.0.1:8081/docs`.
 
+## Testing the Image Generator
+
+You can test the image generation capabilities using the provided script:
+
+```bash
+python scripts/test_image_generator.py
+```
+
+This script demonstrates three different image generation approaches:
+
+1. **Placeholder**: Returns sample image URLs (for testing without API keys)
+2. **DALL-E**: Uses OpenAI's DALL-E model for image generation
+3. **GPT-4o**: A placeholder implementation for the upcoming GPT-4o image generation API
+
+The script displays the results in a table format, making it easy to compare the different providers.
+
 ## API Endpoints
 
 ### Health Check
@@ -340,6 +356,8 @@ dspy-meme-generator/
 │           │   └── memes.py
 │           └── schemas/
 │               └── memes.py
+├── scripts/
+│   └── test_image_generator.py
 ├── .env
 ├── requirements.txt
 └── README.md
