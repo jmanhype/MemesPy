@@ -19,23 +19,24 @@ A FastAPI-based meme generation service powered by DSPy for intelligent meme cre
 ## 🚀 Installation
 
 1. Clone the repository:
+
    ```
    git clone https://github.com/yourusername/dspy-meme-generator.git
    cd dspy-meme-generator
    ```
-
 2. Create a virtual environment:
+
    ```
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
-
 3. Install dependencies:
+
    ```
    pip install -r requirements.txt
    ```
-
 4. Create a `.env` file with the following content:
+
    ```
    # DSPy Configuration
    DSPY_MODEL_NAME=gpt-3.5-turbo-0125
@@ -53,7 +54,6 @@ A FastAPI-based meme generation service powered by DSPy for intelligent meme cre
    DATABASE_URL=sqlite:///./meme_generator.db
    CACHE_TTL=3600
    ```
-
 5. Replace `your-openai-api-key-goes-here` with your actual OpenAI API key.
 
 ## 🏃‍♂️ Running the API
@@ -75,6 +75,7 @@ python scripts/test_image_generator.py
 ```
 
 This script demonstrates three different image generation approaches:
+
 1. 🔄 **Placeholder**: Returns sample image URLs (for testing without API keys)
 2. 🎨 **DALL-E**: Uses OpenAI's DALL-E model for image generation
 3. 🔮 **GPT-4o**: A placeholder implementation for the upcoming GPT-4o image generation API
@@ -88,11 +89,13 @@ The script displays the results in a table format, making it easy to compare the
 - `GET /api/health` - Check the health of the API
 
 Example:
+
 ```bash
 curl http://127.0.0.1:8081/api/health
 ```
 
 Response:
+
 ```json
 {
   "status": "healthy",
@@ -118,6 +121,7 @@ curl -X POST http://127.0.0.1:8081/api/v1/memes/ \
 ```
 
 Response:
+
 ```json
 {
   "id": "b1691d8c-c16d-4128-bf29-010557116f1c",
@@ -137,6 +141,7 @@ curl http://127.0.0.1:8081/api/v1/memes/
 ```
 
 Response:
+
 ```json
 {
   "items": [
@@ -163,6 +168,7 @@ curl http://127.0.0.1:8081/api/v1/memes/b1691d8c-c16d-4128-bf29-010557116f1c
 ```
 
 Response:
+
 ```json
 {
   "id": "b1691d8c-c16d-4128-bf29-010557116f1c",
@@ -199,11 +205,11 @@ Our project uses DSPy's signature-based programming model to create AI-powered m
 ```python
 class MemeSignature(dspy.Signature):
     """Signature for meme generation."""
-    
+  
     topic: str = dspy.InputField(desc="The topic or theme for the meme")
     format: str = dspy.InputField(desc="The meme format to use (e.g., 'standard', 'modern', 'comparison')")
     context: Optional[str] = dspy.InputField(desc="Additional context or requirements for the meme")
-    
+  
     text: str = dspy.OutputField(desc="The text content for the meme")
     image_prompt: str = dspy.OutputField(desc="A detailed prompt for image generation")
     rationale: str = dspy.OutputField(desc="Explanation of why this meme would be effective")
@@ -265,7 +271,7 @@ dspy.configure(lm=lm)
 class MemeSignature(dspy.Signature):
     topic: str = dspy.InputField()
     format: str = dspy.InputField()
-    
+  
     text: str = dspy.OutputField()
     image_prompt: str = dspy.OutputField()
     score: float = dspy.OutputField()
@@ -365,9 +371,45 @@ Run the tests with:
 pytest
 ```
 
-## 📄 License
+## 📜 Licensing
 
-MIT
+This project uses a dual-licensing model to balance open-source availability with commercial sustainability:
+
+### 🔓 Open Source Core (AGPL-3.0)
+
+The core functionality of DSPy Meme Generator is licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](https://www.gnu.org/licenses/agpl-3.0.en.html). This includes:
+
+- `src/` directory - Core logic for generating memes
+- `scripts/` directory - CLI tools and utilities
+- `tests/` directory - Test files for core functionality
+
+The AGPL license ensures that:
+
+- You can freely use, modify, and distribute the core code
+- If you modify the code and provide it as a service (including over a network), you must make your modifications available under the same license
+- The core remains open and accessible to the community
+
+### 🔒 Commercial Components (Proprietary)
+
+Advanced features designed for commercial deployment are available under a proprietary license in the `platform/` directory (coming soon):
+
+- `platform/saas/` - Premium services including authentication, billing, and rate limiting
+- `platform/deployment/` - Infrastructure as code for hosting
+- `platform/monitoring/` - Analytics and operational monitoring
+
+### 💼 Commercial Licensing Options
+
+For commercial use cases that require:
+
+- Exemption from the AGPL requirements
+- Access to the proprietary components
+- Commercial support and SLAs
+
+Please contact us at licensing@example.com to discuss commercial licensing options.
+
+### 🤝 Contributing
+
+Contributions to the core components are welcome! By contributing code, you agree that your contributions will be licensed under the AGPL-3.0 license. All contributors are required to sign our Contributor License Agreement (CLA).
 
 ## 🙏 Acknowledgements
 
