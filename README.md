@@ -405,7 +405,7 @@ For commercial use cases that require:
 - Access to the proprietary components
 - Commercial support and SLAs
 
-Please contact us at licensing@example.com to discuss commercial licensing options.
+Please contact us at straughterguthrie@quickcolbert.com to discuss commercial licensing options.
 
 ### 🤝 Contributing
 
