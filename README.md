@@ -19,17 +19,26 @@ A FastAPI-based meme generation service powered by DSPy for intelligent meme cre
 ## 🚀 Installation
 
 1. Clone the repository:
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
    ```
    git clone https://github.com/yourusername/dspy-meme-generator.git
    cd dspy-meme-generator
    ```
+<<<<<<< Updated upstream
 2. Create a virtual environment:
 
+=======
+
+2. Create a virtual environment:
+>>>>>>> Stashed changes
    ```
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
+<<<<<<< Updated upstream
 3. Install dependencies:
 
    ```
@@ -37,6 +46,15 @@ A FastAPI-based meme generation service powered by DSPy for intelligent meme cre
    ```
 4. Create a `.env` file with the following content:
 
+=======
+
+3. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+
+4. Create a `.env` file with the following content:
+>>>>>>> Stashed changes
    ```
    # DSPy Configuration
    DSPY_MODEL_NAME=gpt-3.5-turbo-0125
@@ -54,6 +72,10 @@ A FastAPI-based meme generation service powered by DSPy for intelligent meme cre
    DATABASE_URL=sqlite:///./meme_generator.db
    CACHE_TTL=3600
    ```
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 5. Replace `your-openai-api-key-goes-here` with your actual OpenAI API key.
 
 ## 🏃‍♂️ Running the API
@@ -61,7 +83,11 @@ A FastAPI-based meme generation service powered by DSPy for intelligent meme cre
 Start the API server with:
 
 ```
+<<<<<<< Updated upstream
 python -m uvicorn src.dspy_meme_gen.api.final_app:app --port 8081
+=======
+python -m uvicorn src.dspy_meme_gen.api.main:app --port 8081
+>>>>>>> Stashed changes
 ```
 
 The API will be available at `http://127.0.0.1:8081/`. The documentation is accessible at `http://127.0.0.1:8081/docs`.
@@ -75,7 +101,10 @@ python scripts/test_image_generator.py
 ```
 
 This script demonstrates three different image generation approaches:
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 1. 🔄 **Placeholder**: Returns sample image URLs (for testing without API keys)
 2. 🎨 **DALL-E**: Uses OpenAI's DALL-E model for image generation
 3. 🔮 **GPT-4o**: A placeholder implementation for the upcoming GPT-4o image generation API
@@ -89,13 +118,19 @@ The script displays the results in a table format, making it easy to compare the
 - `GET /api/health` - Check the health of the API
 
 Example:
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 ```bash
 curl http://127.0.0.1:8081/api/health
 ```
 
 Response:
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 ```json
 {
   "status": "healthy",
@@ -121,7 +156,10 @@ curl -X POST http://127.0.0.1:8081/api/v1/memes/ \
 ```
 
 Response:
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 ```json
 {
   "id": "b1691d8c-c16d-4128-bf29-010557116f1c",
@@ -141,7 +179,10 @@ curl http://127.0.0.1:8081/api/v1/memes/
 ```
 
 Response:
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 ```json
 {
   "items": [
@@ -168,7 +209,10 @@ curl http://127.0.0.1:8081/api/v1/memes/b1691d8c-c16d-4128-bf29-010557116f1c
 ```
 
 Response:
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 ```json
 {
   "id": "b1691d8c-c16d-4128-bf29-010557116f1c",
@@ -205,11 +249,19 @@ Our project uses DSPy's signature-based programming model to create AI-powered m
 ```python
 class MemeSignature(dspy.Signature):
     """Signature for meme generation."""
+<<<<<<< Updated upstream
   
     topic: str = dspy.InputField(desc="The topic or theme for the meme")
     format: str = dspy.InputField(desc="The meme format to use (e.g., 'standard', 'modern', 'comparison')")
     context: Optional[str] = dspy.InputField(desc="Additional context or requirements for the meme")
   
+=======
+    
+    topic: str = dspy.InputField(desc="The topic or theme for the meme")
+    format: str = dspy.InputField(desc="The meme format to use (e.g., 'standard', 'modern', 'comparison')")
+    context: Optional[str] = dspy.InputField(desc="Additional context or requirements for the meme")
+    
+>>>>>>> Stashed changes
     text: str = dspy.OutputField(desc="The text content for the meme")
     image_prompt: str = dspy.OutputField(desc="A detailed prompt for image generation")
     rationale: str = dspy.OutputField(desc="Explanation of why this meme would be effective")
@@ -271,7 +323,11 @@ dspy.configure(lm=lm)
 class MemeSignature(dspy.Signature):
     topic: str = dspy.InputField()
     format: str = dspy.InputField()
+<<<<<<< Updated upstream
   
+=======
+    
+>>>>>>> Stashed changes
     text: str = dspy.OutputField()
     image_prompt: str = dspy.OutputField()
     score: float = dspy.OutputField()
@@ -384,7 +440,10 @@ The core functionality of DSPy Meme Generator is licensed under the [GNU Affero 
 - `tests/` directory - Test files for core functionality
 
 The AGPL license ensures that:
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 - You can freely use, modify, and distribute the core code
 - If you modify the code and provide it as a service (including over a network), you must make your modifications available under the same license
 - The core remains open and accessible to the community
@@ -400,12 +459,19 @@ Advanced features designed for commercial deployment are available under a propr
 ### 💼 Commercial Licensing Options
 
 For commercial use cases that require:
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 - Exemption from the AGPL requirements
 - Access to the proprietary components
 - Commercial support and SLAs
 
+<<<<<<< Updated upstream
 Please contact us at straughterguthrie@quickcolbert.com to discuss commercial licensing options.
+=======
+Please contact us at licensing@example.com to discuss commercial licensing options.
+>>>>>>> Stashed changes
 
 ### 🤝 Contributing
 
@@ -414,5 +480,10 @@ Contributions to the core components are welcome! By contributing code, you agre
 ## 🙏 Acknowledgements
 
 - [DSPy](https://github.com/stanfordnlp/dspy) - For providing the foundation for LLM-based applications
+<<<<<<< Updated upstream
 - [FastAPI](https://fastapi.tiangolo.com/) - For the web framework
 - [SQLAlchemy](https://www.sqlalchemy.org/) - For ORM database interactions
+=======
+- [FastAPI](https://fastapi.tiangolo.com/) - For the web framework 
+- [SQLAlchemy](https://www.sqlalchemy.org/) - For ORM database interactions 
+>>>>>>> Stashed changes

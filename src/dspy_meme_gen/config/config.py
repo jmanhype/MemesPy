@@ -1,7 +1,7 @@
 """Application configuration module."""
 
 import os
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Literal
 
 from pydantic import Field, validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -39,12 +39,34 @@ class Settings(BaseSettings):
     # DSPy settings
     dspy_model: str = "gpt-3.5-turbo-0125"
     
+    # Image generation settings
+    image_provider: Literal["placeholder", "dalle", "gpt4o", "gpt-image-1", "gpt-image", "openai"] = "placeholder"
+    
     # Validation
     @validator("database_url", pre=True)
     def validate_database_url(cls, v: Any) -> Any:
         """Validate and normalize database URL."""
         if not v:
             return "sqlite:///./meme_generator.db"
+        return v
+    
+    @validator("image_provider", pre=True)
+    def validate_image_provider(cls, v: str, values: dict) -> str:
+        """
+        Validate and set appropriate image provider based on available API keys.
+        
+        If OpenAI API key is available and no provider is explicitly set,
+        defaults to 'gpt-image-1' now that organization is verified.
+        """
+        if not v or v == "placeholder":
+            # Auto-upgrade to gpt-image-1 if we have an OpenAI API key
+            if values.get("openai_api_key"):
+                return "gpt-image-1"
+                
+        # Handle legacy or alternative provider names
+        if v == "imogen" or v == "gpt-image" or v == "openai":
+            return "gpt-image-1"
+            
         return v
     
     # Updated config for Pydantic v2

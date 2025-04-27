@@ -29,4 +29,4 @@ class MemeDB(Base):
     text = Column(String, nullable=False)
     image_url = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    score = Column(Float, nullable=False) 
+    # score = Column(Float, nullable=False) # Removed score column 

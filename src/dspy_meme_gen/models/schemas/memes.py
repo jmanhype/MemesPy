@@ -31,7 +31,6 @@ class MemeResponse(BaseModel):
         text: The text content of the meme
         image_url: URL to the generated meme image
         created_at: Timestamp when the meme was created
-        score: Quality score of the meme
     """
     
     id: str = Field(..., description="Unique identifier for the meme")
@@ -40,7 +39,6 @@ class MemeResponse(BaseModel):
     text: str = Field(..., description="The text content of the meme")
     image_url: str = Field(..., description="URL to the generated meme image")
     created_at: str = Field(..., description="Creation timestamp")
-    score: float = Field(..., description="Quality score of the meme", ge=0.0, le=1.0)
 
     @validator("created_at", pre=True)
     def parse_datetime(cls, value):
@@ -51,7 +49,7 @@ class MemeResponse(BaseModel):
     
     class Config:
         """Pydantic model configuration."""
-        orm_mode = True
+        from_attributes = True
 
 
 class MemeListResponse(BaseModel):
