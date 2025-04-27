@@ -24,7 +24,7 @@ router = APIRouter()
 
 # Initialize our DSPy modules
 meme_predictor = MemePredictor()
-image_generator = ImageGenerator()
+image_generator = ImageGenerator(provider=settings.image_provider)
 
 @router.post("/", response_model=MemeResponse, status_code=status.HTTP_201_CREATED)
 async def generate_meme(
@@ -54,15 +54,22 @@ async def generate_meme(
     
     try:
         # Generate meme content using DSPy
-        meme_content = meme_predictor.forward(
+        meme_text, image_prompt = meme_predictor.forward(
             topic=request.topic,
-            format=request.format,
-            context=request.context if hasattr(request, 'context') else None
+            format=request.format
         )
         
-        # Generate image using DALL-E
+        # Check if generation failed (fallback might return None)
+        if meme_text is None or image_prompt is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Meme generation failed (predictor returned None)"
+            )
+        
+        # Generate image using the configured provider
         image_url = image_generator.generate(
-            prompt=meme_content['image_prompt']
+            prompt=image_prompt,
+            meme_text=meme_text  # Pass meme text for providers that support text overlay
         )
         
         if not image_url:
@@ -76,14 +83,13 @@ async def generate_meme(
             id=str(uuid.uuid4()),
             topic=request.topic,
             format=request.format,
-            text=meme_content['text'],
+            text=meme_text,
             image_url=image_url,
-            created_at=datetime.utcnow().isoformat(),
-            score=meme_content['score']
+            created_at=datetime.utcnow().isoformat()
         )
         
         # Store in cache
-        await cache.set(cache_key, json.dumps(meme.dict()), ex=settings.cache_ttl)
+        await cache.set(cache_key, json.dumps(meme.model_dump()), ex=settings.cache_ttl)
         
         # Store in database
         db_meme = MemeDB(
@@ -92,8 +98,7 @@ async def generate_meme(
             format=meme.format,
             text=meme.text,
             image_url=meme.image_url,
-            created_at=datetime.fromisoformat(meme.created_at),
-            score=meme.score
+            created_at=datetime.fromisoformat(meme.created_at)
         )
         db.add(db_meme)
         db.commit()
@@ -149,8 +154,7 @@ async def list_memes(
                 format=meme.format,
                 text=meme.text,
                 image_url=meme.image_url,
-                created_at=meme.created_at.isoformat(),
-                score=meme.score
+                created_at=meme.created_at.isoformat()
             ) for meme in memes
         ]
         
@@ -162,7 +166,7 @@ async def list_memes(
         )
         
         # Store in cache
-        await cache.set(cache_key, json.dumps(response.dict()), ex=settings.cache_ttl)
+        await cache.set(cache_key, json.dumps(response.model_dump()), ex=settings.cache_ttl)
         
         return response
         
@@ -215,12 +219,11 @@ async def get_meme(
             format=meme.format,
             text=meme.text,
             image_url=meme.image_url,
-            created_at=meme.created_at.isoformat(),
-            score=meme.score
+            created_at=meme.created_at.isoformat()
         )
         
         # Store in cache
-        await cache.set(cache_key, json.dumps(response.dict()), ex=settings.cache_ttl)
+        await cache.set(cache_key, json.dumps(response.model_dump()), ex=settings.cache_ttl)
         
         return response
         
