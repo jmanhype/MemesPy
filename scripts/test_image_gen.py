@@ -88,12 +88,12 @@ def generate_image(
         if model == "gpt-image-1":
             # Try gpt-image-1 first - it returns base64 encoded image data by default
             try:
-                response = client.images.generate(
+    response = client.images.generate(
                     model="gpt-image-1",
-                    prompt=enhanced_prompt,
-                    n=1,
-                    size=f"{width}x{height}"
-                )
+        prompt=enhanced_prompt,
+        n=1,
+        size=f"{width}x{height}"
+    )
                 # The response from gpt-image-1 includes b64_json by default
                 b64_json = response.data[0].b64_json
                 
@@ -118,7 +118,7 @@ def generate_image(
                 response_format="url"
             )
             # DALL-E 3 returns a URL
-            image_url = response.data[0].url
+    image_url = response.data[0].url
         
         # Handle b64_json
         saved_path = None
@@ -137,7 +137,7 @@ def generate_image(
                     f.write(image_data)
                 saved_path = output_file
                 print(f"Image saved to {saved_path}")
-        
+    
         return image_url, saved_path
         
     except Exception as e:
@@ -175,7 +175,7 @@ def main():
         
         print("\nImage generation successful!")
         if image_url:
-            print(f"Image URL: {image_url}")
+        print(f"Image URL: {image_url}")
         if saved_path:
             print(f"Image saved to: {saved_path}")
         

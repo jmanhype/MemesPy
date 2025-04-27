@@ -81,8 +81,8 @@ async def generate_meme(
         # Create meme response
         meme = MemeResponse(
             id=str(uuid.uuid4()),
-            topic=request.topic,
-            format=request.format,
+        topic=request.topic,
+        format=request.format,
             text=meme_text,
             image_url=image_url,
             created_at=datetime.utcnow().isoformat()
@@ -110,7 +110,7 @@ async def generate_meme(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate meme: {str(e)}"
-        )
+    )
 
 @router.get("/", response_model=MemeListResponse)
 async def list_memes(
@@ -161,9 +161,9 @@ async def list_memes(
         response = MemeListResponse(
             items=meme_responses,
             total=total,
-            limit=limit,
-            offset=offset
-        )
+        limit=limit,
+        offset=offset
+    )
         
         # Store in cache
         await cache.set(cache_key, json.dumps(response.model_dump()), ex=settings.cache_ttl)
@@ -233,4 +233,4 @@ async def get_meme(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get meme: {str(e)}"
-        ) 
+    ) 

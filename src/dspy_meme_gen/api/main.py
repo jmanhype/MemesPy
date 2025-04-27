@@ -4,6 +4,7 @@ import logging
 import dspy
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles  # Import StaticFiles
 
 from ..config.config import settings
 from .routers import health, memes
@@ -26,6 +27,11 @@ app = FastAPI(
     version=settings.app_version,
     docs_url="/docs",
 )
+
+# --- Mount Static Files Directory ---
+# This will serve files from the 'static' directory at the '/static' URL path
+app.mount("/static", StaticFiles(directory="static"), name="static")
+# --- End Static Files Mounting ---
 
 # Add CORS middleware
 app.add_middleware(

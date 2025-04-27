@@ -6,6 +6,7 @@ import logging
 import base64
 from pathlib import Path
 import tempfile
+import uuid  # Import uuid for generating unique filenames
 from typing import Optional, Dict, Any, Literal, Union, List, Tuple
 
 import requests
@@ -15,6 +16,11 @@ from dspy_meme_gen.config.config import settings
 
 # Configure logger
 logger = logging.getLogger(__name__)
+
+# Define the persistent storage path
+STATIC_MEME_PATH = Path("static/images/memes")
+# Ensure the directory exists
+STATIC_MEME_PATH.mkdir(parents=True, exist_ok=True)
 
 # Define a local upload_to_s3 function in case the module is not available
 def upload_to_s3(file_path: str, is_local_file: bool = False) -> Optional[str]:
@@ -68,7 +74,7 @@ class ImageGenerator(BaseModel):
             meme_text: Optional text to overlay on the image
         
         Returns:
-            URL to the generated image
+            URL or relative path to the generated image
         """
         # Get provider from instance or settings
         provider = self.provider or settings.image_provider
@@ -195,7 +201,7 @@ class ImageGenerator(BaseModel):
             meme_text: Optional text to overlay on the image
         
         Returns:
-            URL to the generated image
+            Relative web path to the generated image or fallback URL
         """
         try:
             # First check if OpenAI API key is set
@@ -249,44 +255,34 @@ class ImageGenerator(BaseModel):
                 # Extract base64 image data
                 b64_json = response.data[0].b64_json
                 
-                # Save to temporary file
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
-                    temp_path = temp_file.name
-                    image_data = base64.b64decode(b64_json)
-                    temp_file.write(image_data)
+                # Generate a unique filename
+                unique_filename = f"{uuid.uuid4()}.png"
+                save_path = STATIC_MEME_PATH / unique_filename
                 
-                logger.debug(f"Saved gpt-image-1 image to temporary file: {temp_path}")
+                # Decode and save to the persistent directory
+                image_data = base64.b64decode(b64_json)
+                with open(save_path, "wb") as f:
+                    f.write(image_data)
                 
-                # Upload to S3 if configured
-                if hasattr(settings, 'use_s3_for_images') and settings.use_s3_for_images and hasattr(settings, 's3_bucket') and settings.s3_bucket:
-                    try:
-                        s3_url = upload_to_s3(temp_path, is_local_file=True)
-                        # Clean up temp file
-                        try:
-                            os.unlink(temp_path)
-                        except Exception as e:
-                            logger.warning(f"Failed to delete temp file: {str(e)}")
-                            
-                        if s3_url:
-                            logger.info(f"Uploaded gpt-image-1 image to S3: {s3_url}")
-                            return s3_url
-                    except Exception as e:
-                        logger.error(f"Failed to upload gpt-image-1 image to S3: {str(e)}")
+                logger.info(f"Saved gpt-image-1 image to persistent storage: {save_path}")
                 
-                # If S3 upload failed or not configured, serve local file
-                # This is not ideal for production but works for development
-                logger.warning("S3 upload not configured or failed. Using local file.")
-                return f"file://{temp_path}"
+                # Construct the relative web path
+                web_path = f"/static/images/memes/{unique_filename}"
+                return web_path
                 
             except Exception as e:
-                if "organization must be verified" in str(e).lower() or "403" in str(e):
-                    logger.warning("GPT-Image-1 not available due to organization verification requirements. Falling back to DALL-E.")
+                if "organization must be verified" in str(e).lower() or "403" in str(e) or "moderation_blocked" in str(e).lower():
+                    log_message = "GPT-Image-1 not available (verification/moderation). Falling back to DALL-E."
+                    if "moderation_blocked" in str(e).lower():
+                        log_message = "GPT-Image-1 prompt blocked by moderation. Falling back to DALL-E."
+                    logger.warning(log_message)
                     return self._generate_dalle(prompt, size, style, meme_text)
                 else:
-                    raise  # Re-raise if it's a different error
+                    logger.error(f"Unexpected error generating gpt-image-1 image: {str(e)}")
+                    raise  # Re-raise unexpected errors
 
         except Exception as e:
-            logger.error(f"Error generating gpt-image-1 image: {str(e)}")
+            logger.error(f"Error in gpt-image-1 generation process: {str(e)}")
             return self._generate_dalle(prompt, size, style, meme_text)
 
     def _generate_gpt4o(
