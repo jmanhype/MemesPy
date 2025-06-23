@@ -586,20 +586,9 @@ class MetricsAggregator:
                     disk_percent=disk.percent
                 )
                 
-                # Collect per-actor resource metrics if possible
-                for actor_name, actor_metrics in self.actor_metrics.items():
-                    try:
-                        # This would need to be implemented per actor if we track processes
-                        actor_metrics.record_resource_usage(
-                            cpu_percent=cpu_percent / len(self.actor_metrics),
-                            memory_mb=memory.used / 1024 / 1024 / len(self.actor_metrics)
-                        )
-                    except Exception as e:
-                        logger.warning(
-                            "Failed to collect actor metrics",
-                            actor=actor_name,
-                            error=str(e)
-                        )
+                # Skip per-actor resource metrics until proper tracking is implemented
+                # TODO: Implement actual per-actor resource tracking via process monitoring
+                pass
                 
                 await asyncio.sleep(self._collection_interval)
                 

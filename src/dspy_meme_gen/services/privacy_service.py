@@ -44,9 +44,11 @@ class PrivacyService:
         except AttributeError:
             # Fallback if settings don't have these attributes
             import os
-            self.encryption_key = os.environ.get('ENCRYPTION_KEY', os.urandom(32).hex())
-            self.pseudonym_salt = os.environ.get('PSEUDONYM_SALT', os.urandom(32).hex())
-            logger.warning("Using fallback encryption settings. For production, set ENCRYPTION_KEY and PSEUDONYM_SALT environment variables.")
+            self.encryption_key = os.environ.get('ENCRYPTION_KEY')
+            self.pseudonym_salt = os.environ.get('PSEUDONYM_SALT')
+            if not self.encryption_key or not self.pseudonym_salt:
+                raise ValueError("ENCRYPTION_KEY and PSEUDONYM_SALT environment variables must be set for privacy service")
+            logger.warning("Using environment variables for encryption settings. For production, configure these in settings.")
         
         self.min_k_anonymity = 5
         

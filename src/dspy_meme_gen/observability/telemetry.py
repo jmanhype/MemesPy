@@ -180,7 +180,7 @@ def init_telemetry(
     if otlp_endpoint:
         otlp_exporter = OTLPSpanExporter(
             endpoint=otlp_endpoint,
-            insecure=True  # Use secure=True in production
+            insecure=settings.app_env != "production"
         )
         trace_provider.add_span_processor(
             BatchSpanProcessor(otlp_exporter)
@@ -213,7 +213,7 @@ def init_telemetry(
     if otlp_endpoint:
         otlp_metric_exporter = OTLPMetricExporter(
             endpoint=otlp_endpoint,
-            insecure=True
+            insecure=settings.app_env != "production"
         )
         metric_readers.append(
             PeriodicExportingMetricReader(
