@@ -123,7 +123,7 @@ class ConcurrencyManager:
         # Try to add to queue (this will raise QueueFull if full)
         try:
             await self.queue.put((request, generation_func))
-            logger.info(f"Request {request_id} queued (queue size: {self.queue.qsize()})")
+            logger.info(f"Request queued (queue size: {self.queue.qsize()})")
         except asyncio.QueueFull:
             # Remove from tracking and re-raise
             del self.requests[request_id]
@@ -154,7 +154,7 @@ class ConcurrencyManager:
             KeyError: If request ID is not found
         """
         if request_id not in self.requests:
-            raise KeyError(f"Request {request_id} not found")
+            raise KeyError("Request not found")
         
         request = self.requests[request_id]
         timeout = timeout or self.request_timeout
@@ -165,7 +165,7 @@ class ConcurrencyManager:
                 request.status = RequestStatus.TIMEOUT
                 request.error = f"Request timed out after {timeout} seconds"
                 self.timeout_requests += 1
-                raise asyncio.TimeoutError(f"Request {request_id} timed out")
+                raise asyncio.TimeoutError("Request timed out")
             
             await asyncio.sleep(0.1)  # Check every 100ms
         
@@ -187,7 +187,7 @@ class ConcurrencyManager:
                     request.status = RequestStatus.PROCESSING
                     request.processing_start = time.time()
                     
-                    logger.info(f"Processing request {request.id} (concurrent: {self.max_concurrent - self.processing_semaphore._value})")
+                    logger.info(f"Processing request (concurrent: {self.max_concurrent - self.processing_semaphore._value})")
                     
                     try:
                         # Execute generation with timeout
@@ -206,7 +206,7 @@ class ConcurrencyManager:
                         if self.failure_count > 0:
                             self.failure_count = max(0, self.failure_count - 1)
                         
-                        logger.info(f"Request {request.id} completed successfully in {request.processing_end - request.processing_start:.1f}s")
+                        logger.info(f"Request completed successfully in {request.processing_end - request.processing_start:.1f}s")
                         
                     except asyncio.TimeoutError:
                         # Timeout
@@ -216,7 +216,7 @@ class ConcurrencyManager:
                         self.timeout_requests += 1
                         self._handle_failure()
                         
-                        logger.warning(f"Request {request.id} timed out")
+                        logger.warning("Request timed out during processing")
                         
                     except Exception as e:
                         # Failure
@@ -226,7 +226,7 @@ class ConcurrencyManager:
                         self.failed_requests += 1
                         self._handle_failure()
                         
-                        logger.error(f"Request {request.id} failed: {e}")
+                        logger.error(f"Request failed: {e}")
                     
                     finally:
                         self.queue.task_done()
@@ -256,7 +256,7 @@ class ConcurrencyManager:
                 
                 for request_id in expired_ids:
                     del self.requests[request_id]
-                    logger.debug(f"Cleaned up expired request {request_id}")
+                    logger.debug("Cleaned up expired request")
                 
                 await asyncio.sleep(60)  # Run cleanup every minute
                 

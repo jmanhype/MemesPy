@@ -179,7 +179,7 @@ async def get_generation_status(request_id: str) -> Dict[str, Any]:
     if not request_status:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Request {request_id} not found"
+            detail="Request not found"
         )
     
     response = {
