@@ -1,15 +1,19 @@
 # 🎭 DSPy Meme Generator
 
-A FastAPI-based meme generation service powered by DSPy for intelligent meme creation.
+A FastAPI-based meme generation service powered by DSPy for intelligent meme creation with dual image generation models.
 
 ## ✨ Features
 
 - 🤖 Generate memes using AI with DSPy
+- 🖼️ Dual image generation support:
+  - **gpt-image-1**: Default model for fast, local image generation (saves as PNG files)
+  - **DALL-E 3**: Fallback for high-quality images when gpt-image-1 is unavailable
 - 📈 Analyze trending topics for meme creation
 - 🎯 Recommend suitable meme formats based on topics
 - 🌐 RESTful API for easy integration
 - 💾 SQLite database for persistent storage
-- ⚡ Simple caching mechanism for improved performance
+- ⚡ Redis caching support for improved performance
+- 📁 Static file serving for locally generated images
 
 ## 📋 Prerequisites
 
@@ -19,34 +23,16 @@ A FastAPI-based meme generation service powered by DSPy for intelligent meme cre
 ## 🚀 Installation
 
 1. Clone the repository:
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
    ```
    git clone https://github.com/yourusername/dspy-meme-generator.git
    cd dspy-meme-generator
    ```
-<<<<<<< Updated upstream
-2. Create a virtual environment:
-
-=======
 
 2. Create a virtual environment:
->>>>>>> Stashed changes
    ```
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
-<<<<<<< Updated upstream
-3. Install dependencies:
-
-   ```
-   pip install -r requirements.txt
-   ```
-4. Create a `.env` file with the following content:
-
-=======
 
 3. Install dependencies:
    ```
@@ -54,7 +40,6 @@ A FastAPI-based meme generation service powered by DSPy for intelligent meme cre
    ```
 
 4. Create a `.env` file with the following content:
->>>>>>> Stashed changes
    ```
    # DSPy Configuration
    DSPY_MODEL_NAME=gpt-3.5-turbo-0125
@@ -72,25 +57,37 @@ A FastAPI-based meme generation service powered by DSPy for intelligent meme cre
    DATABASE_URL=sqlite:///./meme_generator.db
    CACHE_TTL=3600
    ```
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
 5. Replace `your-openai-api-key-goes-here` with your actual OpenAI API key.
 
 ## 🏃‍♂️ Running the API
 
-Start the API server with:
+1. Initialize the database (first time only):
+   ```
+   python scripts/init_db.py
+   ```
 
-```
-<<<<<<< Updated upstream
-python -m uvicorn src.dspy_meme_gen.api.final_app:app --port 8081
-=======
-python -m uvicorn src.dspy_meme_gen.api.main:app --port 8081
->>>>>>> Stashed changes
-```
+2. Start the API server:
+   ```
+   python -m uvicorn src.dspy_meme_gen.api.main:app --port 8081
+   ```
+
+   Or with hot reload for development:
+   ```
+   python -m uvicorn src.dspy_meme_gen.api.main:app --reload --port 8081
+   ```
 
 The API will be available at `http://127.0.0.1:8081/`. The documentation is accessible at `http://127.0.0.1:8081/docs`.
+
+### 🖼️ Image Generation Models
+
+The system automatically selects the appropriate image generation model:
+
+- **gpt-image-1** (Default): When OpenAI API key is available, uses this model for fast image generation. Images are saved locally to `static/images/memes/` and served via the `/static` endpoint.
+  
+- **DALL-E 3** (Fallback): Used when gpt-image-1 is unavailable or when prompts are blocked by moderation. Returns hosted image URLs.
+
+- **Placeholder** (Testing): Returns sample image URLs when no API key is configured.
 
 ## 🧪 Testing the Image Generator
 
@@ -100,14 +97,10 @@ You can test the image generation capabilities using the provided script:
 python scripts/test_image_generator.py
 ```
 
-This script demonstrates three different image generation approaches:
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
+This script demonstrates the different image generation approaches:
 1. 🔄 **Placeholder**: Returns sample image URLs (for testing without API keys)
-2. 🎨 **DALL-E**: Uses OpenAI's DALL-E model for image generation
-3. 🔮 **GPT-4o**: A placeholder implementation for the upcoming GPT-4o image generation API
+2. 🖼️ **gpt-image-1**: Fast base64 image generation with local storage
+3. 🎨 **DALL-E 3**: High-quality image generation with URL responses
 
 The script displays the results in a table format, making it easy to compare the different providers.
 
@@ -118,19 +111,11 @@ The script displays the results in a table format, making it easy to compare the
 - `GET /api/health` - Check the health of the API
 
 Example:
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 ```bash
 curl http://127.0.0.1:8081/api/health
 ```
 
 Response:
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 ```json
 {
   "status": "healthy",
@@ -152,25 +137,24 @@ Response:
 ```bash
 curl -X POST http://127.0.0.1:8081/api/v1/memes/ \
   -H "Content-Type: application/json" \
-  -d '{"topic": "Python Programming", "format": "standard"}'
+  -d '{"topic": "Python Programming", "format": "Drake meme"}'
 ```
 
 Response:
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 ```json
 {
   "id": "b1691d8c-c16d-4128-bf29-010557116f1c",
   "topic": "Python Programming",
-  "format": "standard",
-  "text": "Sample meme text about Python Programming",
-  "image_url": "https://example.com/sample.jpg",
-  "created_at": "2025-03-28T18:15:35.647677",
-  "score": 0.95
+  "format": "Drake meme",
+  "text": "Writing code in other languages vs Writing code in Python",
+  "image_url": "/static/images/memes/0c542a66-9b69-45b3-ac62-26edcbade7a2.png",
+  "created_at": "2025-03-28T18:15:35.647677"
 }
 ```
+
+Note: The `image_url` will be either:
+- A local path like `/static/images/memes/[uuid].png` when using gpt-image-1
+- A full URL like `https://oaidalleapiprodscus.blob.core.windows.net/...` when using DALL-E 3
 
 ### 📋 Example: List All Memes
 
@@ -179,10 +163,6 @@ curl http://127.0.0.1:8081/api/v1/memes/
 ```
 
 Response:
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 ```json
 {
   "items": [
@@ -190,10 +170,9 @@ Response:
       "id": "b1691d8c-c16d-4128-bf29-010557116f1c",
       "topic": "Python Programming",
       "format": "standard",
-      "text": "Sample meme text about Python Programming",
-      "image_url": "https://example.com/sample.jpg",
-      "created_at": "2025-03-28T18:15:35.647677",
-      "score": 0.95
+      "text": "When your code works on the first try",
+      "image_url": "/static/images/memes/abc123.png",
+      "created_at": "2025-03-28T18:15:35.647677"
     }
   ],
   "total": 1,
@@ -209,10 +188,6 @@ curl http://127.0.0.1:8081/api/v1/memes/b1691d8c-c16d-4128-bf29-010557116f1c
 ```
 
 Response:
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 ```json
 {
   "id": "b1691d8c-c16d-4128-bf29-010557116f1c",
@@ -249,19 +224,11 @@ Our project uses DSPy's signature-based programming model to create AI-powered m
 ```python
 class MemeSignature(dspy.Signature):
     """Signature for meme generation."""
-<<<<<<< Updated upstream
-  
-    topic: str = dspy.InputField(desc="The topic or theme for the meme")
-    format: str = dspy.InputField(desc="The meme format to use (e.g., 'standard', 'modern', 'comparison')")
-    context: Optional[str] = dspy.InputField(desc="Additional context or requirements for the meme")
-  
-=======
     
     topic: str = dspy.InputField(desc="The topic or theme for the meme")
     format: str = dspy.InputField(desc="The meme format to use (e.g., 'standard', 'modern', 'comparison')")
     context: Optional[str] = dspy.InputField(desc="Additional context or requirements for the meme")
     
->>>>>>> Stashed changes
     text: str = dspy.OutputField(desc="The text content for the meme")
     image_prompt: str = dspy.OutputField(desc="A detailed prompt for image generation")
     rationale: str = dspy.OutputField(desc="Explanation of why this meme would be effective")
@@ -323,11 +290,7 @@ dspy.configure(lm=lm)
 class MemeSignature(dspy.Signature):
     topic: str = dspy.InputField()
     format: str = dspy.InputField()
-<<<<<<< Updated upstream
-  
-=======
     
->>>>>>> Stashed changes
     text: str = dspy.OutputField()
     image_prompt: str = dspy.OutputField()
     score: float = dspy.OutputField()
@@ -440,10 +403,6 @@ The core functionality of DSPy Meme Generator is licensed under the [GNU Affero 
 - `tests/` directory - Test files for core functionality
 
 The AGPL license ensures that:
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 - You can freely use, modify, and distribute the core code
 - If you modify the code and provide it as a service (including over a network), you must make your modifications available under the same license
 - The core remains open and accessible to the community
@@ -459,19 +418,11 @@ Advanced features designed for commercial deployment are available under a propr
 ### 💼 Commercial Licensing Options
 
 For commercial use cases that require:
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 - Exemption from the AGPL requirements
 - Access to the proprietary components
 - Commercial support and SLAs
 
-<<<<<<< Updated upstream
 Please contact us at straughterguthrie@quickcolbert.com to discuss commercial licensing options.
-=======
-Please contact us at licensing@example.com to discuss commercial licensing options.
->>>>>>> Stashed changes
 
 ### 🤝 Contributing
 
@@ -480,10 +431,5 @@ Contributions to the core components are welcome! By contributing code, you agre
 ## 🙏 Acknowledgements
 
 - [DSPy](https://github.com/stanfordnlp/dspy) - For providing the foundation for LLM-based applications
-<<<<<<< Updated upstream
 - [FastAPI](https://fastapi.tiangolo.com/) - For the web framework
 - [SQLAlchemy](https://www.sqlalchemy.org/) - For ORM database interactions
-=======
-- [FastAPI](https://fastapi.tiangolo.com/) - For the web framework 
-- [SQLAlchemy](https://www.sqlalchemy.org/) - For ORM database interactions 
->>>>>>> Stashed changes

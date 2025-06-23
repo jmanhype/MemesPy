@@ -81,8 +81,8 @@ async def generate_meme(
         # Create meme response
         meme = MemeResponse(
             id=str(uuid.uuid4()),
-        topic=request.topic,
-        format=request.format,
+            topic=request.topic,
+            format=request.format,
             text=meme_text,
             image_url=image_url,
             created_at=datetime.utcnow().isoformat()
@@ -98,7 +98,8 @@ async def generate_meme(
             format=meme.format,
             text=meme.text,
             image_url=meme.image_url,
-            created_at=datetime.fromisoformat(meme.created_at)
+            created_at=datetime.fromisoformat(meme.created_at),
+            score=0.8  # Default score for now
         )
         db.add(db_meme)
         db.commit()

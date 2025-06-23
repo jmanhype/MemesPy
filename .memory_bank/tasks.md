@@ -1,0 +1,21 @@
+# Tasks
+
+- [x] Populate Memory Bank from existing repository content.
+- [ ] **Understand, Install, and Run Project:**
+    - [x] Phase 1: Understand Codebase (Completed)
+        - [x] Review Memory Bank files
+        - [x] Explore core directories (`api`, `services`, `repositories`, `dspy_modules`, `config`, `models`)
+        - [x] Confirm application entry point (`main.py` including `routers/memes.py`)
+        - Findings: Core AI logic uses placeholders.
+    - [x] Phase 2: Installation & Setup (Completed)
+        - [x] Create virtual environment (`python -m venv venv`)
+        - [x] Activate virtual environment (`source venv/bin/activate`)
+        - [x] Install dependencies (`pip install -r requirements.txt`)
+        - [x] (Optional) Install test dependencies (`pip install -r requirements-test.txt`) <-- Failed (pytest-faker==3.0.0 not found)
+        - [x] Create and populate `.env` file <-- Correcting Filename (.env.example -> .env)
+    - [ ] Phase 3: Running & Verification <-- In Progress
+        - [ ] Run locally (`uvicorn ...`) <-- Blocked (Attempting Fix: Separate init_db.py)
+        - [ ] Initialize Database (`python scripts/init_db.py`) <-- Next (User Action Needed)
+        - [ ] Verify via `/docs` endpoint
+        - [ ] Verify via `/api/health` endpoint
+        - [ ] Test core API functionality (Generate, List, Get Meme) 
