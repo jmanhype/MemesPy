@@ -8,12 +8,20 @@ A FastAPI-based meme generation service powered by DSPy for intelligent meme cre
 - 🖼️ Dual image generation support:
   - **gpt-image-1**: Default model for fast, local image generation (saves as PNG files)
   - **DALL-E 3**: Fallback for high-quality images when gpt-image-1 is unavailable
+- 📊 **Comprehensive Metadata Tracking**:
+  - Generation performance metrics (time, retries, efficiency)
+  - Image technical details (dimensions, format, file size)
+  - Model usage and token consumption
+  - Cost tracking and analytics
+  - EXIF metadata embedding in generated images
+  - Quality scoring and virality prediction
 - 📈 Analyze trending topics for meme creation
 - 🎯 Recommend suitable meme formats based on topics
 - 🌐 RESTful API for easy integration
-- 💾 SQLite database for persistent storage
+- 💾 Enhanced database with metadata storage
 - ⚡ Redis caching support for improved performance
 - 📁 Static file serving for locally generated images
+- 📈 Analytics dashboard endpoints for insights
 
 ## 📋 Prerequisites
 
@@ -199,6 +207,93 @@ Response:
   "score": 0.95
 }
 ```
+
+## 📊 Analytics and Metadata API
+
+The enhanced MemesPy system tracks comprehensive metadata for every meme generated. Access detailed insights through these endpoints:
+
+### 📈 Get Meme Metadata
+
+```bash
+curl http://127.0.0.1:8081/api/v1/analytics/memes/{meme_id}/metadata
+```
+
+Returns comprehensive metadata including:
+- Generation performance metrics
+- Image technical specifications
+- Model and token usage
+- Cost tracking
+- Quality scores
+
+### 📊 Generation Statistics
+
+```bash
+# Get hourly, daily, or weekly stats
+curl http://127.0.0.1:8081/api/v1/analytics/stats/daily
+```
+
+### 🔍 Search by Metadata
+
+```bash
+curl -X POST http://127.0.0.1:8081/api/v1/analytics/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "min_score": 0.8,
+    "model_used": "gpt-image-1",
+    "sort_by": "virality_score",
+    "limit": 10
+  }'
+```
+
+### 🔥 Trending Memes
+
+```bash
+curl http://127.0.0.1:8081/api/v1/analytics/trending?hours=24&limit=10
+```
+
+### 📤 Export Metadata
+
+```bash
+curl -X POST http://127.0.0.1:8081/api/v1/analytics/export \
+  -H "Content-Type: application/json" \
+  -d '{
+    "format": "json",
+    "filters": {"min_score": 0.7}
+  }'
+```
+
+## 🔬 Metadata Details
+
+Every generated meme includes:
+
+1. **Generation Metadata**:
+   - Model used (gpt-image-1, dall-e-3)
+   - Generation time and retries
+   - Efficiency score
+   - Token usage
+
+2. **Image Metadata**:
+   - Dimensions and format
+   - File size
+   - Color analysis
+   - EXIF data embedding
+
+3. **Quality Metrics**:
+   - Overall score
+   - Confidence level
+   - Relevance score
+   - Humor score
+   - Virality prediction
+
+4. **Cost Tracking**:
+   - Text generation cost
+   - Image generation cost
+   - Total cost per meme
+
+5. **Performance Tracking**:
+   - API response times
+   - Cache hit rates
+   - Error tracking
 
 ## 🧠 Working with DSPy
 

@@ -4,6 +4,7 @@ import os
 import random
 import logging
 import base64
+import time
 from pathlib import Path
 import tempfile
 import uuid  # Import uuid for generating unique filenames
@@ -13,6 +14,7 @@ import requests
 from pydantic import BaseModel
 
 from dspy_meme_gen.config.config import settings
+from ..services.metadata_collector import MetadataCollector
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -51,6 +53,7 @@ class ImageGenerator(BaseModel):
         "https://picsum.photos/600/406",
         "https://picsum.photos/600/407",
     ]
+    metadata_collector: Optional[MetadataCollector] = None
 
     class Config:
         """Pydantic model configuration."""
@@ -115,9 +118,11 @@ class ImageGenerator(BaseModel):
         Returns:
             URL to the generated image
         """
+        start_time = time.time()
+        
         try:
             # First check if OpenAI API key is set
-            api_key = os.environ.get("OPENAI_API_KEY")
+            api_key = settings.openai_api_key or os.environ.get("OPENAI_API_KEY")
             
             if not api_key:
                 logger.warning(
@@ -153,9 +158,12 @@ class ImageGenerator(BaseModel):
             except (ValueError, AttributeError):
                 logger.warning(f"Invalid size format: {size}, defaulting to 1024x1024")
                 size_str = "1024x1024"
+                width, height = 1024, 1024
 
             # DALL-E 3 model
             logger.info(f"Generating DALL-E image with prompt: {enhanced_prompt}")
+            
+            generation_start = time.time()
             response = client.images.generate(
                 model="dall-e-3",
                 prompt=enhanced_prompt,
@@ -164,9 +172,39 @@ class ImageGenerator(BaseModel):
                 n=1,
                 response_format="url"
             )
+            generation_time = (time.time() - generation_start) * 1000
 
             image_url = response.data[0].url
             logger.debug(f"Generated DALL-E image URL: {image_url}")
+            
+            # Track metadata if collector is available
+            if self.metadata_collector:
+                self.metadata_collector.track_image_generation(
+                    provider="openai",
+                    prompt=enhanced_prompt,
+                    model="dall-e-3",
+                    size=size_str,
+                    duration_ms=generation_time,
+                    success=True,
+                    image_url=image_url
+                )
+                
+                # Add cost tracking (DALL-E 3 pricing)
+                # Standard quality: $0.040 per image for 1024x1024
+                cost = 0.040 if size_str == "1024x1024" else 0.080
+                self.metadata_collector.add_cost_tracking(image_cost=cost)
+                
+                # Note: We can't analyze remote images or embed EXIF without downloading
+                # But we track the URL and generation parameters
+                self.metadata_collector.metadata['image_metadata'] = {
+                    'provider': 'dall-e-3',
+                    'remote_url': image_url,
+                    'width': width,
+                    'height': height,
+                    'format': 'png',  # DALL-E returns PNG
+                    'quality': 'standard',
+                    'storage_location': 'openai_cdn'
+                }
             
             # Upload to S3 if configured
             if hasattr(settings, 'use_s3_for_images') and settings.use_s3_for_images and hasattr(settings, 's3_bucket') and settings.s3_bucket:
@@ -174,6 +212,9 @@ class ImageGenerator(BaseModel):
                     s3_url = upload_to_s3(image_url)
                     if s3_url:
                         logger.info(f"Uploaded DALL-E image to S3: {s3_url}")
+                        if self.metadata_collector:
+                            self.metadata_collector.metadata['image_metadata']['cdn_url'] = s3_url
+                            self.metadata_collector.metadata['image_metadata']['storage_location'] = 's3'
                         return s3_url
                 except Exception as e:
                     logger.error(f"Failed to upload DALL-E image to S3: {str(e)}")
@@ -181,7 +222,21 @@ class ImageGenerator(BaseModel):
             return image_url
 
         except Exception as e:
+            total_time = (time.time() - start_time) * 1000
             logger.error(f"Error generating DALL-E image: {str(e)}")
+            
+            # Track error
+            if self.metadata_collector:
+                self.metadata_collector.track_image_generation(
+                    provider="openai",
+                    prompt=prompt,
+                    model="dall-e-3",
+                    size=size,
+                    duration_ms=total_time,
+                    success=False,
+                    error=str(e)
+                )
+            
             return self._generate_placeholder()
 
     def _generate_gpt_image_1(
@@ -203,9 +258,11 @@ class ImageGenerator(BaseModel):
         Returns:
             Relative web path to the generated image or fallback URL
         """
+        start_time = time.time()
+        
         try:
             # First check if OpenAI API key is set
-            api_key = os.environ.get("OPENAI_API_KEY")
+            api_key = settings.openai_api_key or os.environ.get("OPENAI_API_KEY")
             
             if not api_key:
                 logger.warning(
@@ -241,9 +298,12 @@ class ImageGenerator(BaseModel):
             except (ValueError, AttributeError):
                 logger.warning(f"Invalid size format: {size}, defaulting to 1024x1024")
                 size_str = "1024x1024"
+                width, height = 1024, 1024
 
             # gpt-image-1 model - it returns base64 encoded image by default
             logger.info(f"Generating gpt-image-1 image with prompt: {enhanced_prompt}")
+            
+            generation_start = time.time()
             try:
                 response = client.images.generate(
                     model="gpt-image-1",
@@ -251,6 +311,8 @@ class ImageGenerator(BaseModel):
                     size=size_str,
                     n=1
                 )
+                
+                generation_time = (time.time() - generation_start) * 1000
                 
                 # Extract base64 image data
                 b64_json = response.data[0].b64_json
@@ -268,21 +330,79 @@ class ImageGenerator(BaseModel):
                 
                 # Construct the relative web path
                 web_path = f"/static/images/memes/{unique_filename}"
+                
+                # Track metadata if collector is available
+                if self.metadata_collector:
+                    self.metadata_collector.track_image_generation(
+                        provider="openai",
+                        prompt=enhanced_prompt,
+                        model="gpt-image-1",
+                        size=size_str,
+                        duration_ms=generation_time,
+                        success=True,
+                        image_url=web_path
+                    )
+                    
+                    # Analyze the generated image
+                    image_metadata = self.metadata_collector.analyze_generated_image(str(save_path))
+                    if image_metadata:
+                        self.metadata_collector.metadata['image_metadata'] = image_metadata
+                    
+                    # Embed metadata in EXIF
+                    self.metadata_collector.embed_in_image_exif(str(save_path))
+                    
+                    # Add cost tracking (estimated)
+                    # gpt-image-1 pricing (example: $0.016 per image for 1024x1024)
+                    cost = 0.016 if size_str == "1024x1024" else 0.020
+                    self.metadata_collector.add_cost_tracking(image_cost=cost)
+                
                 return web_path
                 
             except Exception as e:
+                generation_time = (time.time() - generation_start) * 1000
+                
                 if "organization must be verified" in str(e).lower() or "403" in str(e) or "moderation_blocked" in str(e).lower():
                     log_message = "GPT-Image-1 not available (verification/moderation). Falling back to DALL-E."
+                    fallback_reason = "organization_verification"
                     if "moderation_blocked" in str(e).lower():
                         log_message = "GPT-Image-1 prompt blocked by moderation. Falling back to DALL-E."
+                        fallback_reason = "moderation_blocked"
                     logger.warning(log_message)
+                    
+                    # Track failed attempt
+                    if self.metadata_collector:
+                        self.metadata_collector.track_image_generation(
+                            provider="openai",
+                            prompt=enhanced_prompt,
+                            model="gpt-image-1",
+                            size=size_str,
+                            duration_ms=generation_time,
+                            success=False,
+                            error=str(e),
+                            fallback_info={'reason': fallback_reason, 'to_model': 'dall-e-3'}
+                        )
+                    
                     return self._generate_dalle(prompt, size, style, meme_text)
                 else:
                     logger.error(f"Unexpected error generating gpt-image-1 image: {str(e)}")
                     raise  # Re-raise unexpected errors
 
         except Exception as e:
+            total_time = (time.time() - start_time) * 1000
             logger.error(f"Error in gpt-image-1 generation process: {str(e)}")
+            
+            # Track error
+            if self.metadata_collector:
+                self.metadata_collector.track_image_generation(
+                    provider="openai",
+                    prompt=prompt,
+                    model="gpt-image-1",
+                    size=size,
+                    duration_ms=total_time,
+                    success=False,
+                    error=str(e)
+                )
+            
             return self._generate_dalle(prompt, size, style, meme_text)
 
     def _generate_gpt4o(

@@ -7,8 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles  # Import StaticFiles
 
 from ..config.config import settings
-from .routers import health, memes
+from .routers import health, memes, analytics
 from ..models.database.memes import Base
+from ..models.database.metadata import Base as MetadataBase
 from ..database.connection import engine
 # Import dependency for shutdown event
 from .dependencies import close_connections
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
+MetadataBase.metadata.create_all(bind=engine)
 
 # Create FastAPI application
 app = FastAPI(
@@ -45,6 +47,7 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(memes.router, prefix="/api/v1/memes", tags=["memes"])
+app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 
 @app.on_event("startup")
 async def startup_event():
