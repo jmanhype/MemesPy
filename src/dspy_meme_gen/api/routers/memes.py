@@ -7,7 +7,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from ...config.config import settings
 from ...models.schemas.memes import (
@@ -21,6 +21,7 @@ from ...models.db_models.metadata import MemeMetadata, GenerationLog
 from ...dspy_modules.meme_predictor import MemePredictor
 from ...dspy_modules.image_generator import ImageGenerator
 from ...services.metadata_collector import MetadataCollector
+from ...services.concurrency_manager import get_concurrency_manager, RequestStatus
 from ...models.database import get_db
 from ..dependencies import get_cache
 
@@ -38,6 +39,180 @@ router = APIRouter()
 # Initialize our DSPy modules (legacy)
 meme_predictor = MemePredictor()
 image_generator = ImageGenerator(provider=settings.image_provider)
+
+# Initialize concurrency manager
+concurrency_manager = get_concurrency_manager()
+
+
+# Async legacy generation function for concurrency manager
+async def _async_legacy_generation(topic: str, format: str) -> Dict[str, Any]:
+    """Async wrapper for legacy meme generation."""
+    import asyncio
+    
+    # Run the synchronous legacy generation in a thread pool
+    loop = asyncio.get_event_loop()
+    
+    def sync_generation():
+        # Initialize metadata collector
+        metadata_collector = MetadataCollector()
+        generation_id = metadata_collector.start_generation(
+            topic=topic,
+            format=format,
+            request_id=str(uuid.uuid4()),
+            client_ip="background",
+            user_agent="concurrency_manager"
+        )
+        
+        # Generate meme content using DSPy
+        meme_text, image_prompt = meme_predictor.forward(topic=topic, format=format)
+        
+        if meme_text is None or image_prompt is None:
+            raise RuntimeError("Meme generation failed (predictor returned None)")
+        
+        # Set metadata collector on image generator
+        image_generator.metadata_collector = metadata_collector
+        
+        # Generate image
+        image_url = image_generator.generate(
+            prompt=image_prompt,
+            meme_text=meme_text
+        )
+        
+        if not image_url:
+            raise RuntimeError("Failed to generate meme image")
+        
+        # Calculate score
+        score = _calculate_quality_score(metadata_collector.metadata)
+        
+        # Finalize metadata
+        final_metadata = metadata_collector.finalize(
+            score=score,
+            image_url=image_url,
+            meme_text=meme_text,
+            success=True
+        )
+        
+        return {
+            "id": str(uuid.uuid4()),
+            "topic": topic,
+            "format": format,
+            "text": meme_text,
+            "image_url": image_url,
+            "created_at": datetime.utcnow().isoformat(),
+            "score": score,
+            "metadata": final_metadata
+        }
+    
+    # Run in thread pool to avoid blocking the event loop
+    return await loop.run_in_executor(None, sync_generation)
+
+
+@router.post("/async", status_code=status.HTTP_202_ACCEPTED)
+async def generate_meme_async(
+    request: MemeGenerationRequest,
+    http_request: Request
+) -> Dict[str, str]:
+    """
+    Generate a meme asynchronously with immediate response.
+    
+    This endpoint immediately returns a request ID and processes the meme
+    generation in the background using the concurrency manager.
+    
+    Args:
+        request: The meme generation request
+        http_request: The HTTP request object
+        
+    Returns:
+        Dict with request_id and status endpoint
+        
+    Raises:
+        HTTPException: If system is overloaded (queue full or circuit breaker open)
+    """
+    try:
+        # Submit to concurrency manager
+        request_id = await concurrency_manager.submit_request(
+            topic=request.topic,
+            format=request.format,
+            generation_func=_async_legacy_generation
+        )
+        
+        return {
+            "request_id": request_id,
+            "status": "accepted",
+            "status_url": f"/api/v1/memes/status/{request_id}",
+            "message": "Meme generation request accepted and queued for processing"
+        }
+        
+    except asyncio.QueueFull:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="System overloaded - queue is full. Please try again later."
+        )
+    except RuntimeError as e:
+        if "circuit breaker" in str(e).lower():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=str(e)
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to submit request: {str(e)}"
+        )
+
+
+@router.get("/status/{request_id}")
+async def get_generation_status(request_id: str) -> Dict[str, Any]:
+    """
+    Get the status of an async meme generation request.
+    
+    Args:
+        request_id: The request ID returned by /async endpoint
+        
+    Returns:
+        Status information including current state and result if completed
+        
+    Raises:
+        HTTPException: If request ID is not found
+    """
+    request_status = await concurrency_manager.get_request_status(request_id)
+    
+    if not request_status:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Request {request_id} not found"
+        )
+    
+    response = {
+        "request_id": request_id,
+        "status": request_status.status.value,
+        "created_at": request_status.created_at,
+        "topic": request_status.topic,
+        "format": request_status.format
+    }
+    
+    # Add timing information if available
+    if request_status.processing_start:
+        response["processing_start"] = request_status.processing_start
+        if request_status.processing_end:
+            response["processing_end"] = request_status.processing_end
+            response["processing_time"] = request_status.processing_end - request_status.processing_start
+        else:
+            response["processing_time"] = time.time() - request_status.processing_start
+    
+    # Add result or error
+    if request_status.status == RequestStatus.COMPLETED and request_status.result:
+        response["result"] = request_status.result
+    elif request_status.status in (RequestStatus.FAILED, RequestStatus.TIMEOUT) and request_status.error:
+        response["error"] = request_status.error
+    
+    return response
+
+
+@router.get("/metrics")
+async def get_concurrency_metrics() -> Dict[str, Any]:
+    """Get concurrency manager metrics."""
+    return concurrency_manager.get_metrics()
+
 
 @router.post("/", response_model=MemeResponse, status_code=status.HTTP_201_CREATED)
 async def generate_meme(

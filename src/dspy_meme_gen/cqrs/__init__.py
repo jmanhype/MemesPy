@@ -14,7 +14,7 @@ from ..config.config import settings
 from .event_store import initialize_event_store, get_event_store, shutdown_event_store
 from .event_bus import get_event_bus, shutdown_event_bus
 from .projections import initialize_projections, rebuild_projections_from_events
-# from .command_handlers import initialize_command_handlers  # Temporarily disabled due to actor message issues
+from .command_handlers import initialize_command_handlers
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class CQRSSystem:
             if actor_system and settings.enable_actor_system:
                 logger.info("Actor system provided but command handlers disabled due to import issues")
                 self._actor_system = actor_system
-                # await initialize_command_handlers(actor_system)  # Temporarily disabled
+                await initialize_command_handlers(actor_system)
             
             self._initialized = True
             logger.info("CQRS system initialization completed successfully")
