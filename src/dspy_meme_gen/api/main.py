@@ -7,9 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles  # Import StaticFiles
 
 from ..config.config import settings
-from .routers import health, memes, analytics
+from .routers import health, memes, analytics, privacy
 from ..models.database.memes import Base
 from ..models.database.metadata import Base as MetadataBase
+from ..models.database.privacy_metadata import Base as PrivacyBase
+from .middleware.privacy_middleware import PrivacyMiddleware, ConsentEnforcementMiddleware
 from ..database.connection import engine
 # Import dependency for shutdown event
 from .dependencies import close_connections
@@ -21,6 +23,7 @@ logger = logging.getLogger(__name__)
 # Create database tables
 Base.metadata.create_all(bind=engine)
 MetadataBase.metadata.create_all(bind=engine)
+PrivacyBase.metadata.create_all(bind=engine)
 
 # Create FastAPI application
 app = FastAPI(
@@ -35,6 +38,10 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory="static"), name="static")
 # --- End Static Files Mounting ---
 
+# Add privacy middleware FIRST (before CORS)
+app.add_middleware(PrivacyMiddleware)
+app.add_middleware(ConsentEnforcementMiddleware)
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -48,12 +55,17 @@ app.add_middleware(
 app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(memes.router, prefix="/api/v1/memes", tags=["memes"])
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
+app.include_router(privacy.router, prefix="/api", tags=["privacy"])
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize services on startup, including DSPy configuration."""
+    """Initialize services on startup, including DSPy configuration and async event sourcing."""
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
     logger.info(f"Environment: {settings.app_env}")
+    
+    # Start privacy tasks
+    from ..tasks.privacy_tasks import start_privacy_tasks
+    start_privacy_tasks()
     
     # --- Configure DSPy ---
     if settings.openai_api_key and settings.dspy_model:
@@ -79,10 +91,37 @@ async def startup_event():
             "DSPy configuration skipped: OpenAI API key or DSPy model name missing in settings."
         )
     # --- End DSPy Configuration ---
+    
+    # --- Initialize Async Event Sourcing System ---
+    try:
+        logger.info("Initializing async event sourcing system...")
+        from ..system_setup import startup_system
+        await startup_system()
+        logger.info("Async event sourcing system initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize async event sourcing system: {e}", exc_info=True)
+        # Note: You may want to decide if the app should continue without event sourcing
+        # For now, we'll log the error but continue startup
+    # --- End Event Sourcing Initialization ---
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean up resources on shutdown."""
-    logger.info(f"Shutting down {settings.app_name}") 
+    logger.info(f"Shutting down {settings.app_name}")
+    
+    # --- Shutdown Async Event Sourcing System ---
+    try:
+        logger.info("Shutting down async event sourcing system...")
+        from ..system_setup import shutdown_system_handler
+        await shutdown_system_handler()
+        logger.info("Async event sourcing system shutdown completed")
+    except Exception as e:
+        logger.error(f"Failed to shutdown async event sourcing system: {e}", exc_info=True)
+    # --- End Event Sourcing Shutdown ---
+    
+    # Stop privacy tasks
+    from ..tasks.privacy_tasks import stop_privacy_tasks
+    stop_privacy_tasks()
+    
     # Close cache connections
     await close_connections() 

@@ -48,10 +48,10 @@ class MemeGenerator:
             
             # Create the OpenAI model
             self.llm = dspy.LM(
-                model=f"openai/{settings.dspy_model_name}",
+                model=f"openai/{settings.dspy_model}",
                 api_key=api_key,
-                temperature=settings.dspy_temperature,
-                max_tokens=settings.dspy_max_tokens
+                temperature=0.7,
+                max_tokens=1000
             )
             
             # Configure DSPy with this LM
