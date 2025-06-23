@@ -7,10 +7,10 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...database.connection import get_db
+from ...models.database import get_async_db as get_db
 from ...services.privacy_service import PrivacyService
-from ...models.database.privacy_metadata import ConsentType, DataRetentionPeriod
-from ...exceptions import PrivacyError, ConsentError
+from ...models.db_models.privacy_metadata import ConsentType, DataRetentionPeriod
+from ...exceptions.specific import PrivacyError, ConsentError
 from ...api.dependencies import get_current_user_id, get_user_country
 from ...config.config import settings
 import logging

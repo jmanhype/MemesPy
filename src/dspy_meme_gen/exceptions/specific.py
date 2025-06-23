@@ -8,6 +8,7 @@ from .base import (
     ConfigurationError,
     ContentError,
     DatabaseError,
+    DSPyMemeError,
     ErrorCode,
     ExternalServiceError
 )
@@ -170,4 +171,33 @@ class ConfigTypeError(ConfigurationError):
     """Raised when configuration has incorrect type."""
     
     def __init__(self, message: str, **kwargs: Any) -> None:
-        super().__init__(message, ErrorCode.CONFIG_TYPE_ERROR, **kwargs) 
+        super().__init__(message, ErrorCode.CONFIG_TYPE_ERROR, **kwargs)
+
+
+# Privacy Exceptions
+class PrivacyError(DSPyMemeError):
+    """Base class for privacy-related errors."""
+    
+    def __init__(self, message: str, **kwargs: Any) -> None:
+        super().__init__(message, ErrorCode.VALIDATION_ERROR, **kwargs)
+
+
+class ConsentError(PrivacyError):
+    """Raised when required consent is missing or invalid."""
+    
+    def __init__(self, message: str, **kwargs: Any) -> None:
+        super().__init__(message, **kwargs)
+
+
+class DataRetentionError(PrivacyError):
+    """Raised when data retention policies are violated."""
+    
+    def __init__(self, message: str, **kwargs: Any) -> None:
+        super().__init__(message, **kwargs)
+
+
+class AnonymizationError(PrivacyError):
+    """Raised when data anonymization fails."""
+    
+    def __init__(self, message: str, **kwargs: Any) -> None:
+        super().__init__(message, **kwargs) 

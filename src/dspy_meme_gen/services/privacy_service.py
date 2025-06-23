@@ -11,14 +11,14 @@ from sqlalchemy import select, delete, update, and_, or_, func, exists
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from ..models.database.privacy_metadata import (
+from ..models.db_models.privacy_metadata import (
     PrivacyMemeMetadata, UserConsent, PrivacyAuditLog,
     AnonymizedAnalytics, DataDeletionRequest,
     ConsentType, DataRetentionPeriod,
     generate_user_pseudonym, calculate_deletion_date, sanitize_metadata
 )
 from ..config.config import settings
-from ..exceptions import PrivacyError, ConsentError
+from ..exceptions.specific import PrivacyError, ConsentError
 
 logger = logging.getLogger(__name__)
 

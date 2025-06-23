@@ -10,8 +10,8 @@ import pandas as pd
 from io import BytesIO
 import csv
 
-from ...database.connection import get_session
-from ...models.database.metadata import MemeMetadata, GenerationLog, PerformanceMetrics
+from ...models.database import get_db
+from ...models.db_models.metadata import MemeMetadata, GenerationLog, PerformanceMetrics
 from ...models.schemas.metadata import (
     MemeMetadataResponse,
     MemeAnalyticsResponse,
@@ -27,7 +27,7 @@ router = APIRouter()
 @router.get("/memes/{meme_id}/metadata", response_model=MemeMetadataResponse)
 async def get_meme_metadata(
     meme_id: str,
-    db: Session = Depends(get_session)
+    db: Session = Depends(get_db)
 ) -> MemeMetadataResponse:
     """Get comprehensive metadata for a specific meme."""
     
@@ -68,7 +68,7 @@ async def get_meme_metadata(
 @router.get("/memes/{meme_id}/analytics", response_model=MemeAnalyticsResponse)
 async def get_meme_analytics(
     meme_id: str,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_db),
     cache = Depends(get_cache)
 ) -> MemeAnalyticsResponse:
     """Get analytics data for a specific meme."""
@@ -124,7 +124,7 @@ async def get_meme_analytics(
 @router.get("/stats/{time_period}", response_model=GenerationStatsResponse)
 async def get_generation_stats(
     time_period: str,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_db),
     cache = Depends(get_cache)
 ) -> GenerationStatsResponse:
     """Get aggregate generation statistics for a time period."""
@@ -251,7 +251,7 @@ async def get_generation_stats(
 @router.post("/search", response_model=List[MemeMetadataResponse])
 async def search_memes_by_metadata(
     search_request: MetadataSearchRequest,
-    db: Session = Depends(get_session)
+    db: Session = Depends(get_db)
 ) -> List[MemeMetadataResponse]:
     """Search memes using metadata filters."""
     
@@ -324,7 +324,7 @@ async def search_memes_by_metadata(
 @router.post("/export")
 async def export_metadata(
     export_request: MetadataExportRequest,
-    db: Session = Depends(get_session)
+    db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """Export metadata in various formats."""
     
@@ -411,7 +411,7 @@ async def export_metadata(
 async def get_trending_metadata(
     hours: int = Query(24, ge=1, le=168),  # Max 1 week
     limit: int = Query(10, ge=1, le=50),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_db),
     cache = Depends(get_cache)
 ) -> List[Dict[str, Any]]:
     """Get trending memes based on engagement and virality scores."""

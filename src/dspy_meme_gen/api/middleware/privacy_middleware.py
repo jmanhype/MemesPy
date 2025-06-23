@@ -12,7 +12,7 @@ from starlette.types import ASGIApp
 import hashlib
 
 from ...services.privacy_service import PrivacyService
-from ...models.database.privacy_metadata import ConsentType
+from ...models.db_models.privacy_metadata import ConsentType
 from ...config.config import settings
 
 logger = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ class PrivacyMiddleware(BaseHTTPMiddleware):
         
         # Store anonymized user info in request state
         if user_id:
-            from ...models.database.privacy_metadata import generate_user_pseudonym
+            from ...models.db_models.privacy_metadata import generate_user_pseudonym
             request.state.user_pseudonym = generate_user_pseudonym(user_id, self.privacy_service.pseudonym_salt)
             request.state.has_user = True
         else:

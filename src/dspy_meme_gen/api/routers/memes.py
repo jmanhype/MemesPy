@@ -16,12 +16,12 @@ from ...models.schemas.memes import (
     MemeListResponse,
 )
 # Legacy imports for backward compatibility
-from ...models.database.memes import MemeDB
-from ...models.database.metadata import MemeMetadata, GenerationLog
+from ...models.db_models.memes import MemeDB
+from ...models.db_models.metadata import MemeMetadata, GenerationLog
 from ...dspy_modules.meme_predictor import MemePredictor
 from ...dspy_modules.image_generator import ImageGenerator
 from ...services.metadata_collector import MetadataCollector
-from ...database.connection import get_session
+from ...models.database import get_db
 from ..dependencies import get_cache
 
 # New async event sourcing imports
@@ -44,7 +44,7 @@ async def generate_meme(
     request: MemeGenerationRequest,
     http_request: Request,
     use_legacy: bool = False,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_db),
     cache = Depends(get_cache)
 ) -> MemeResponse:
     """
@@ -301,7 +301,7 @@ async def list_memes(
     topic: Optional[str] = None,
     format: Optional[str] = None,
     use_legacy: bool = False,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_db),
     cache = Depends(get_cache)
 ) -> MemeListResponse:
     """
@@ -412,7 +412,7 @@ async def list_memes(
 @router.get("/{meme_id}", response_model=MemeResponse)
 async def get_meme(
     meme_id: str,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_db),
     cache = Depends(get_cache)
 ) -> MemeResponse:
     """

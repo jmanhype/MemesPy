@@ -13,11 +13,11 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import QueuePool
 
-from ..config.config import get_settings
+from ..config.config import settings
 from ..exceptions.database import DatabaseConnectionError
 from ..models.base import Base
 
-settings = get_settings()
+# settings already imported above
 
 class DatabaseConnectionManager:
     """Database connection manager.
@@ -41,14 +41,14 @@ class DatabaseConnectionManager:
         """
         if not self._sync_engine:
             self._sync_engine = create_engine(
-                str(settings.database.DATABASE_URL),
+                str(settings.database_url),
                 poolclass=QueuePool,
-                pool_size=settings.database.DATABASE_POOL_SIZE,
-                max_overflow=settings.database.DATABASE_MAX_OVERFLOW,
-                pool_timeout=settings.database.DATABASE_POOL_TIMEOUT,
-                pool_recycle=settings.database.DATABASE_POOL_RECYCLE,
+                pool_size=10,  # Default pool size
+                max_overflow=20,  # Default max overflow
+                pool_timeout=30,  # Default timeout
+                pool_recycle=3600,  # Default recycle time
                 pool_pre_ping=True,  # Enable connection health checks
-                echo=settings.database.DATABASE_ECHO,
+                echo=False,  # Default echo
             )
             
             # Set up engine event listeners
@@ -65,17 +65,21 @@ class DatabaseConnectionManager:
             AsyncEngine: SQLAlchemy async engine
         """
         if not self._async_engine:
+            async_url = str(settings.database_url)
+            # Convert sync URL to async
+            if async_url.startswith("postgresql://"):
+                async_url = async_url.replace("postgresql://", "postgresql+asyncpg://")
+            elif async_url.startswith("sqlite:///"):
+                async_url = async_url.replace("sqlite:///", "sqlite+aiosqlite:///")
+            
             self._async_engine = create_async_engine(
-                str(settings.database.DATABASE_URL).replace(
-                    "postgresql://",
-                    "postgresql+asyncpg://"
-                ),
-                pool_size=settings.database.DATABASE_POOL_SIZE,
-                max_overflow=settings.database.DATABASE_MAX_OVERFLOW,
-                pool_timeout=settings.database.DATABASE_POOL_TIMEOUT,
-                pool_recycle=settings.database.DATABASE_POOL_RECYCLE,
+                async_url,
+                pool_size=10,  # Default pool size
+                max_overflow=20,  # Default max overflow
+                pool_timeout=30,  # Default timeout
+                pool_recycle=3600,  # Default recycle time
                 pool_pre_ping=True,  # Enable connection health checks
-                echo=settings.database.DATABASE_ECHO,
+                echo=False,  # Default echo
             )
         return self._async_engine
 
@@ -117,9 +121,14 @@ class DatabaseConnectionManager:
             dbapi_connection: DBAPI connection
             connection_record: Connection pool record
         """
-        # Set session parameters
+        # Set session parameters based on database type
         cursor = dbapi_connection.cursor()
-        cursor.execute("SET timezone TO 'UTC'")
+        try:
+            # Try PostgreSQL timezone setting
+            cursor.execute("SET timezone TO 'UTC'")
+        except Exception:
+            # SQLite doesn't support SET timezone, ignore
+            pass
         cursor.close()
 
     def _on_checkout(self, dbapi_connection, connection_record, connection_proxy):

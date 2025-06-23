@@ -12,11 +12,11 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from ..services.privacy_service import PrivacyService
-from ..models.database.privacy_metadata import (
+from ..models.db_models.privacy_metadata import (
     PrivacyMemeMetadata, PrivacyAuditLog, AnonymizedAnalytics, UserConsent
 )
 from ..config.config import settings
-from ..database.connection import get_async_engine
+from ..models.connection import db_manager
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ class PrivacyTaskScheduler:
     def __init__(self):
         self.scheduler = AsyncIOScheduler()
         self.privacy_service = PrivacyService()
-        self.engine = get_async_engine()
+        self.engine = db_manager.async_engine
         self.AsyncSessionLocal = sessionmaker(
             self.engine, class_=AsyncSession, expire_on_commit=False
         )

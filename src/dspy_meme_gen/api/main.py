@@ -8,11 +8,11 @@ from fastapi.staticfiles import StaticFiles  # Import StaticFiles
 
 from ..config.config import settings
 from .routers import health, memes, analytics, privacy
-from ..models.database.memes import Base
-from ..models.database.metadata import Base as MetadataBase
-from ..models.database.privacy_metadata import Base as PrivacyBase
+from ..models.db_models.memes import Base
+from ..models.db_models.metadata import Base as MetadataBase
+from ..models.db_models.privacy_metadata import Base as PrivacyBase
 from .middleware.privacy_middleware import PrivacyMiddleware, ConsentEnforcementMiddleware
-from ..database.connection import engine
+from ..models.connection import db_manager
 # Import dependency for shutdown event
 from .dependencies import close_connections
 
@@ -21,9 +21,9 @@ logging.basicConfig(level=getattr(logging, settings.log_level.upper()))
 logger = logging.getLogger(__name__)
 
 # Create database tables
-Base.metadata.create_all(bind=engine)
-MetadataBase.metadata.create_all(bind=engine)
-PrivacyBase.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=db_manager.sync_engine)
+MetadataBase.metadata.create_all(bind=db_manager.sync_engine)
+PrivacyBase.metadata.create_all(bind=db_manager.sync_engine)
 
 # Create FastAPI application
 app = FastAPI(

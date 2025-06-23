@@ -14,8 +14,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 try:
-    from dspy_meme_gen.database.connection import engine
-    from dspy_meme_gen.models.database.memes import Base
+    from dspy_meme_gen.models.connection import db_manager
+    from dspy_meme_gen.models.db_models.memes import Base
     from dspy_meme_gen.config.config import settings # To log which DB is used
 except ImportError as e:
     logger.error(f"Failed to import necessary modules. Make sure PYTHONPATH is set or run from project root. Error: {e}")

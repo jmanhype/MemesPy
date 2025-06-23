@@ -33,7 +33,7 @@ from ..observability.telemetry import (
     metrics_collector,
     SpanKind
 )
-from ..exceptions import ExternalServiceError
+from ..exceptions.base import ExternalServiceError
 from ..config.config import settings
 
 

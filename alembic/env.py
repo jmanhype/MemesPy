@@ -10,7 +10,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from src.dspy_meme_gen.config.config import settings
-from src.dspy_meme_gen.models.database.memes import Base
+from src.dspy_meme_gen.models.db_models.memes import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

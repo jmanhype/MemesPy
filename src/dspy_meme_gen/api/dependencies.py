@@ -7,7 +7,7 @@ from fastapi import Depends, Header, Request, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config.config import settings
-from ..database.connection import get_db
+from ..models.database import get_async_db as get_db
 
 # Configure logger
 logger = logging.getLogger(__name__)
