@@ -371,8 +371,16 @@ class ImageGeneratorActor(Actor):
                     response_format="b64_json"
                 )
                 
+                # Validate response structure
+                if not response.data or len(response.data) == 0:
+                    raise RuntimeError("No image data returned from OpenAI API")
+                
+                image_item = response.data[0]
+                if not hasattr(image_item, 'b64_json') or not image_item.b64_json:
+                    raise RuntimeError("Invalid image data format from OpenAI API")
+                
                 # Get the base64 image data
-                image_b64 = response.data[0].b64_json
+                image_b64 = image_item.b64_json
                 image_data = base64.b64decode(image_b64)
                 
                 self.logger.info(f"Generated image ({len(image_data)} bytes)")

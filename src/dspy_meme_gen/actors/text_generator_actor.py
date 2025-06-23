@@ -350,7 +350,13 @@ class TextGeneratorActor(Actor):
                 format=format_name
             )
             
-            return result["text"]
+            # Safely extract text from result
+            if isinstance(result, dict) and "text" in result:
+                return result["text"]
+            elif hasattr(result, 'text'):
+                return result.text
+            else:
+                return str(result)
                 
         except Exception as e:
             self.logger.error(f"DSPy text generation failed: {e}")

@@ -598,13 +598,14 @@ class WorkStealingPool:
         if len(self.workers) < 2:
             return
             
-        # Calculate load distribution
+        # Calculate load distribution using safe load info
         worker_loads = []
         total_work = 0
         
         for worker in self.workers.values():
-            queue_size = len(worker.local_queue) + len(worker.high_priority_queue)
-            load_factor = worker.metrics.get_load_factor()
+            load_info = worker.get_load_info()
+            queue_size = load_info["queue_size"]
+            load_factor = load_info["load_factor"]
             worker_loads.append((worker, queue_size, load_factor))
             total_work += queue_size
             

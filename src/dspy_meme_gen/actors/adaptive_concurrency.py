@@ -674,8 +674,9 @@ class ConcurrencyLimitedActor(Actor):
                 
     def get_concurrency_status(self) -> Dict[str, Any]:
         """Get current concurrency status."""
+        # Use a custom counter instead of accessing private attributes
         semaphore_available = (
-            self._processing_semaphore._value 
+            self.concurrency_controller.metrics.current_concurrency - len(self.concurrency_controller.active_requests)
             if self._processing_semaphore else 0
         )
         

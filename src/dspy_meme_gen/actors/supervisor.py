@@ -135,14 +135,18 @@ class Supervisor(Actor):
         self.children[name] = supervised
         self.child_order.append(name)
         
-        # Set up error monitoring
+        # Set up error monitoring with weak reference to avoid circular dependency
+        import weakref
+        supervisor_ref = weakref.ref(self)
         original_handle_message = actor._handle_message
         
         async def monitored_handle_message(message: Message) -> None:
             try:
                 await original_handle_message(message)
             except Exception as e:
-                await self.handle_child_failure(name, e)
+                supervisor = supervisor_ref()
+                if supervisor:
+                    await supervisor.handle_child_failure(name, e)
                 raise
                 
         actor._handle_message = monitored_handle_message
