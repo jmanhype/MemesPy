@@ -17,6 +17,21 @@ from src.dspy_meme_gen.actors.adaptive_concurrency import AdaptiveConcurrencyAct
 from src.dspy_meme_gen.actors.work_stealing_pool import WorkStealingPool
 
 
+@pytest.fixture
+def mock_system():
+    """Fixture to provide a mocked actor system for testing."""
+    mock_system = Mock()
+    mock_system.register_actor = AsyncMock(return_value="mock_ref")
+    mock_system.unregister_actor = AsyncMock()
+    return mock_system
+
+
+def setup_supervisor_with_system(supervisor, mock_system):
+    """Helper to set up supervisor with mocked system."""
+    supervisor._system = mock_system
+    return supervisor
+
+
 @dataclass
 class ChaosTestMessage(Message):
     """Message for chaos testing."""
@@ -112,10 +127,12 @@ class ResourceConstrainedActor(Actor):
 class TestChaosEngineering:
     """Chaos engineering tests for actor system."""
     
-    async def test_random_actor_failures(self):
+    async def test_random_actor_failures(self, mock_system):
         """Test system resilience with random actor failures."""
         restart_policy = RestartPolicy(max_restarts=10)
-        supervisor = Supervisor("chaos_supervisor", restart_policy=restart_policy)
+        supervisor = setup_supervisor_with_system(
+            Supervisor("chaos_supervisor", restart_policy=restart_policy), mock_system
+        )
         
         # Create multiple chaos actors with different failure rates
         chaos_actors = []
@@ -160,9 +177,9 @@ class TestChaosEngineering:
         
         await supervisor.stop()
     
-    async def test_network_partition_simulation(self):
+    async def test_network_partition_simulation(self, mock_system):
         """Simulate network partitions between actors."""
-        supervisor = Supervisor("network_supervisor")
+        supervisor = setup_supervisor_with_system(Supervisor("network_supervisor"), mock_system)
         
         # Create actors that simulate network dependencies
         actor1_ref = await supervisor.spawn_child(ChaosActor, "actor1", "network1", 0.0)
@@ -207,10 +224,12 @@ class TestChaosEngineering:
 class TestResourceConstraints:
     """Test actor behavior under resource constraints."""
     
-    async def test_memory_constraint_handling(self):
+    async def test_memory_constraint_handling(self, mock_system):
         """Test actor behavior when hitting memory limits."""
         restart_policy = RestartPolicy(max_restarts=5)
-        supervisor = Supervisor("resource_supervisor", restart_policy=restart_policy)
+        supervisor = setup_supervisor_with_system(
+            Supervisor("resource_supervisor", restart_policy=restart_policy), mock_system
+        )
         
         # Create resource-constrained actor
         actor_ref = await supervisor.spawn_child(
@@ -242,10 +261,12 @@ class TestResourceConstraints:
         
         await supervisor.stop()
     
-    async def test_concurrent_resource_pressure(self):
+    async def test_concurrent_resource_pressure(self, mock_system):
         """Test multiple actors under concurrent resource pressure."""
         restart_policy = RestartPolicy(max_restarts=10)
-        supervisor = Supervisor("concurrent_supervisor", restart_policy=restart_policy)
+        supervisor = setup_supervisor_with_system(
+            Supervisor("concurrent_supervisor", restart_policy=restart_policy), mock_system
+        )
         
         # Create multiple resource-constrained actors
         actors = []
@@ -289,11 +310,14 @@ class TestResourceConstraints:
 class TestFaultInjection:
     """Systematic fault injection tests."""
     
-    async def test_supervisor_failure_cascade(self):
+    async def test_supervisor_failure_cascade(self, mock_system):
         """Test how failures cascade through supervision hierarchy."""
         from src.dspy_meme_gen.actors.supervisor import RestartStrategy
         restart_policy = RestartPolicy(max_restarts=3)
-        root_supervisor = Supervisor("root", restart_strategy=RestartStrategy.ONE_FOR_ALL, restart_policy=restart_policy)
+        root_supervisor = setup_supervisor_with_system(
+            Supervisor("root", restart_strategy=RestartStrategy.ONE_FOR_ALL, restart_policy=restart_policy),
+            mock_system
+        )
         
         # Create hierarchy: root -> child_supervisor -> actors
         child_sup_ref = await root_supervisor.spawn_child(Supervisor, "child_sup", "child")
@@ -329,9 +353,9 @@ class TestFaultInjection:
         
         await root_supervisor.stop()
     
-    async def test_message_queue_overflow(self):
+    async def test_message_queue_overflow(self, mock_system):
         """Test behavior when message queues overflow."""
-        supervisor = Supervisor("overflow_supervisor")
+        supervisor = setup_supervisor_with_system(Supervisor("overflow_supervisor"), mock_system)
         
         # Create actor with limited processing capacity
         slow_actor_ref = await supervisor.spawn_child(ChaosActor, "slow_actor", "slow", 0.0)
@@ -375,10 +399,12 @@ class TestFaultInjection:
 class TestRecoveryMechanisms:
     """Test system recovery after failures."""
     
-    async def test_graceful_degradation(self):
+    async def test_graceful_degradation(self, mock_system):
         """Test graceful degradation when actors fail."""
         restart_policy = RestartPolicy(max_restarts=2)
-        supervisor = Supervisor("degradation_supervisor", restart_policy=restart_policy)
+        supervisor = setup_supervisor_with_system(
+            Supervisor("degradation_supervisor", restart_policy=restart_policy), mock_system
+        )
         
         # Create a pool of actors where some will fail
         reliable_actors = []
@@ -432,10 +458,12 @@ class TestRecoveryMechanisms:
         
         await supervisor.stop()
     
-    async def test_system_recovery_time(self):
+    async def test_system_recovery_time(self, mock_system):
         """Test how quickly system recovers from failures."""
         restart_policy = RestartPolicy(max_restarts=5)
-        supervisor = Supervisor("recovery_supervisor", restart_policy=restart_policy)
+        supervisor = setup_supervisor_with_system(
+            Supervisor("recovery_supervisor", restart_policy=restart_policy), mock_system
+        )
         
         # Create actor that will fail then recover
         actor_ref = await supervisor.spawn_child(ChaosActor, "recovery_actor", "recovery", 0.8)

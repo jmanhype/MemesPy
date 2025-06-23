@@ -16,6 +16,21 @@ from src.dspy_meme_gen.actors.adaptive_concurrency import ConcurrencyLimitedActo
 from src.dspy_meme_gen.actors.work_stealing_pool import WorkStealingPool, WorkStealingWorker
 
 
+@pytest.fixture
+def mock_system():
+    """Fixture to provide a mocked actor system for testing."""
+    mock_system = Mock()
+    mock_system.register_actor = AsyncMock(return_value="mock_ref")
+    mock_system.unregister_actor = AsyncMock()
+    return mock_system
+
+
+def setup_supervisor_with_system(supervisor, mock_system):
+    """Helper to set up supervisor with mocked system."""
+    supervisor._system = mock_system
+    return supervisor
+
+
 class TestMessage(Message):
     """Test message for supervision tests."""
     
@@ -91,9 +106,9 @@ class FailingActor(Actor):
 class TestSupervisorBasics:
     """Test basic supervisor functionality."""
     
-    async def test_supervisor_creation(self):
+    async def test_supervisor_creation(self, mock_system):
         """Test supervisor can be created with proper configuration."""
-        supervisor = Supervisor("test_supervisor")
+        supervisor = setup_supervisor_with_system(Supervisor("test_supervisor"), mock_system)
         
         assert supervisor.name == "test_supervisor"
         assert len(supervisor.children) == 0
@@ -102,14 +117,9 @@ class TestSupervisorBasics:
         
         await supervisor.stop()
     
-    async def test_child_spawning(self):
+    async def test_child_spawning(self, mock_system):
         """Test supervisor can spawn and track child actors."""
-        supervisor = Supervisor("supervisor")
-        
-        # Mock the system for testing
-        mock_system = Mock()
-        mock_system.register_actor = AsyncMock(return_value="mock_ref")
-        supervisor._system = mock_system
+        supervisor = setup_supervisor_with_system(Supervisor("supervisor"), mock_system)
         
         # Spawn a child actor
         child_ref = await supervisor.spawn_child(TestActor, "test_child", "child")
@@ -123,9 +133,9 @@ class TestSupervisorBasics:
         
         await supervisor.stop()
     
-    async def test_multiple_children(self):
+    async def test_multiple_children(self, mock_system):
         """Test supervisor can manage multiple children."""
-        supervisor = Supervisor("supervisor")
+        supervisor = setup_supervisor_with_system(Supervisor("supervisor"), mock_system)
         
         # Spawn multiple children
         child1_ref = await supervisor.spawn_child(TestActor, "child1", "actor1")
@@ -147,9 +157,11 @@ class TestSupervisorBasics:
 class TestSupervisionStrategy:
     """Test different supervision strategies."""
     
-    async def test_one_for_one_strategy(self):
+    async def test_one_for_one_strategy(self, mock_system):
         """Test one-for-one supervision strategy."""
-        supervisor = Supervisor("supervisor", strategy="one_for_one")
+        supervisor = setup_supervisor_with_system(
+            Supervisor("supervisor", strategy="one_for_one"), mock_system
+        )
         
         # Spawn children
         child1_ref = await supervisor.spawn_child(TestActor, "child1", "actor1")
@@ -178,9 +190,11 @@ class TestSupervisionStrategy:
         
         await supervisor.stop()
     
-    async def test_one_for_all_strategy(self):
+    async def test_one_for_all_strategy(self, mock_system):
         """Test one-for-all supervision strategy."""
-        supervisor = Supervisor("supervisor", strategy="one_for_all")
+        supervisor = setup_supervisor_with_system(
+            Supervisor("supervisor", strategy="one_for_all"), mock_system
+        )
         
         # Spawn children
         child1_ref = await supervisor.spawn_child(TestActor, "child1", "actor1")
@@ -211,9 +225,9 @@ class TestSupervisionStrategy:
 class TestErrorHandling:
     """Test error handling and recovery mechanisms."""
     
-    async def test_child_failure_handling(self):
+    async def test_child_failure_handling(self, mock_system):
         """Test supervisor handles child failures properly."""
-        supervisor = Supervisor("supervisor")
+        supervisor = setup_supervisor_with_system(Supervisor("supervisor"), mock_system)
         
         # Spawn a failing child
         child_ref = await supervisor.spawn_child(FailingActor, "failing_child", "failing")
@@ -234,11 +248,13 @@ class TestErrorHandling:
         
         await supervisor.stop()
     
-    async def test_max_restart_limit(self):
+    async def test_max_restart_limit(self, mock_system):
         """Test max restart limit enforcement."""
         from src.dspy_meme_gen.actors.supervisor import RestartPolicy
         restart_policy = RestartPolicy(max_restarts=2, within_time_range=1.0)
-        supervisor = Supervisor("supervisor", restart_policy=restart_policy)
+        supervisor = setup_supervisor_with_system(
+            Supervisor("supervisor", restart_policy=restart_policy), mock_system
+        )
         
         # Spawn a consistently failing child
         child_ref = await supervisor.spawn_child(FailingActor, "failing_child", "failing")
@@ -261,11 +277,13 @@ class TestErrorHandling:
         
         await supervisor.stop()
     
-    async def test_escalation_to_parent(self):
+    async def test_escalation_to_parent(self, mock_system):
         """Test error escalation to parent supervisor."""
-        root_supervisor = Supervisor("root")
+        root_supervisor = setup_supervisor_with_system(Supervisor("root"), mock_system)
         restart_policy = RestartPolicy(max_restarts=1)
-        child_supervisor = Supervisor("child_supervisor", restart_policy=restart_policy)
+        child_supervisor = setup_supervisor_with_system(
+            Supervisor("child_supervisor", restart_policy=restart_policy), mock_system
+        )
         
         # Create supervision hierarchy
         supervisor_ref = await root_supervisor.spawn_child(Supervisor, "child_sup", "child_supervisor")
@@ -281,9 +299,9 @@ class TestErrorHandling:
 class TestMemoryManagement:
     """Test memory management and leak prevention."""
     
-    async def test_weak_reference_cleanup(self):
+    async def test_weak_reference_cleanup(self, mock_system):
         """Test that weak references prevent circular dependencies."""
-        supervisor = Supervisor("supervisor")
+        supervisor = setup_supervisor_with_system(Supervisor("supervisor"), mock_system)
         
         # Spawn a child
         child_ref = await supervisor.spawn_child(TestActor, "test_child", "child")
@@ -306,9 +324,9 @@ class TestMemoryManagement:
         # (This test mainly ensures the weak reference pattern is in place)
         assert hasattr(child_actor, '_handle_message')
         
-    async def test_child_cleanup_on_shutdown(self):
+    async def test_child_cleanup_on_shutdown(self, mock_system):
         """Test that children are properly cleaned up on shutdown."""
-        supervisor = Supervisor("supervisor")
+        supervisor = setup_supervisor_with_system(Supervisor("supervisor"), mock_system)
         
         # Spawn children
         child1_ref = await supervisor.spawn_child(TestActor, "child1", "actor1")
@@ -333,9 +351,9 @@ class TestMemoryManagement:
 class TestConcurrencySupervision:
     """Test supervision of adaptive concurrency actors."""
     
-    async def test_adaptive_concurrency_supervision(self):
+    async def test_adaptive_concurrency_supervision(self, mock_system):
         """Test supervising adaptive concurrency actors."""
-        supervisor = Supervisor("supervisor")
+        supervisor = setup_supervisor_with_system(Supervisor("supervisor"), mock_system)
         
         # Mock the concurrency controller
         with patch('src.dspy_meme_gen.actors.adaptive_concurrency.DynamicConcurrencyController'):
@@ -358,9 +376,9 @@ class TestConcurrencySupervision:
 class TestWorkStealingSupervision:
     """Test supervision of work stealing pool actors."""
     
-    async def test_work_stealing_worker_supervision(self):
+    async def test_work_stealing_worker_supervision(self, mock_system):
         """Test supervising work stealing worker actors."""
-        supervisor = Supervisor("supervisor")
+        supervisor = setup_supervisor_with_system(Supervisor("supervisor"), mock_system)
         
         # Create a work stealing worker
         worker_ref = await supervisor.spawn_child(
@@ -382,9 +400,11 @@ class TestWorkStealingSupervision:
 class TestSupervisionIntegration:
     """Integration tests for supervision system."""
     
-    async def test_hierarchical_supervision(self):
+    async def test_hierarchical_supervision(self, mock_system):
         """Test hierarchical supervision structure."""
-        root_supervisor = Supervisor("root", strategy="one_for_all")
+        root_supervisor = setup_supervisor_with_system(
+            Supervisor("root", strategy="one_for_all"), mock_system
+        )
         
         # Create child supervisors
         child_sup1_ref = await root_supervisor.spawn_child(Supervisor, "child_sup1", "child1")
@@ -404,10 +424,12 @@ class TestSupervisionIntegration:
         
         await root_supervisor.stop()
     
-    async def test_supervision_under_load(self):
+    async def test_supervision_under_load(self, mock_system):
         """Test supervision system under concurrent load."""
         restart_policy = RestartPolicy(max_restarts=10)
-        supervisor = Supervisor("supervisor", restart_policy=restart_policy)
+        supervisor = setup_supervisor_with_system(
+            Supervisor("supervisor", restart_policy=restart_policy), mock_system
+        )
         
         # Spawn multiple children
         children = []
