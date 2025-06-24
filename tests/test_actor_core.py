@@ -322,6 +322,7 @@ class TestActorSystem:
             assert actor.stop_called is True
 
     @pytest.mark.asyncio
+    @pytest.mark.timeout(5)  # Add shorter timeout for this specific test
     async def test_failing_actor_registration(self):
         """Test handling actors that fail on startup."""
         system = ActorSystem("fail_test")
@@ -330,6 +331,14 @@ class TestActorSystem:
         # Registration should handle startup failure
         with pytest.raises(RuntimeError, match="Startup failure"):
             await system.register_actor(failing_actor)
+
+        # Ensure proper cleanup even after failure
+        if failing_actor._task and not failing_actor._task.done():
+            failing_actor._task.cancel()
+            try:
+                await failing_actor._task
+            except asyncio.CancelledError:
+                pass
 
         await system.stop()
 

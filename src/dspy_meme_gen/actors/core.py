@@ -73,8 +73,19 @@ class Actor(ABC):
         """Start the actor's message processing loop."""
         self.running = True
         self._task = asyncio.create_task(self._run())
-        await self.on_start()
-        self.logger.info(f"Actor {self.name} started")
+        try:
+            await self.on_start()
+            self.logger.info(f"Actor {self.name} started")
+        except Exception:
+            # If startup fails, clean up the task
+            self.running = False
+            if self._task:
+                self._task.cancel()
+                try:
+                    await self._task
+                except asyncio.CancelledError:
+                    pass
+            raise
 
     async def stop(self) -> None:
         """Gracefully stop the actor."""
