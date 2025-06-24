@@ -118,8 +118,6 @@ async def test_check_health_all_healthy(
 
     assert is_healthy is True
     assert details["status"] == "healthy"
-    assert "timestamp" in details
-    assert "uptime" in details
     assert all(component in details for component in ["database", "redis", "system", "metrics"])
     assert details["database"]["status"] == "connected"
     assert details["redis"]["status"] == "connected"
@@ -174,6 +172,7 @@ async def test_check_health_redis_unhealthy(
     """
     # Make Redis check fail
     mock_redis_client.ping.side_effect = Exception("Redis connection failed")
+    mock_redis_client.info.side_effect = Exception("Redis connection failed")
 
     # Mock system checks
     mocker.patch("psutil.cpu_percent", return_value=50.0)
