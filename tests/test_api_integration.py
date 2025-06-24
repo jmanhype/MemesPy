@@ -33,28 +33,31 @@ def test_meme_generation_validation(client):
     # Test missing required fields
     response = client.post("/api/v1/memes/", json={})
     assert response.status_code == 422
-    
+
     # Test with only partial data
     response = client.post("/api/v1/memes/", json={"topic": "test"})
     assert response.status_code == 422
-    
+
     # Test with valid data structure
     valid_request = {
         "topic": "testing",
         "format": "drake",
         "context": "When tests pass",
-        "style": "humor"
+        "style": "humor",
     }
-    
-    with patch('dspy_meme_gen.dspy_modules.meme_predictor.MemePredictorModule.forward') as mock_forward:
+
+    with patch(
+        "dspy_meme_gen.dspy_modules.meme_predictor.MemePredictorModule.forward"
+    ) as mock_forward:
         mock_forward.return_value = MagicMock(
-            text="Test meme text",
-            image_prompt="Test image prompt"
+            text="Test meme text", image_prompt="Test image prompt"
         )
-        
-        with patch('dspy_meme_gen.dspy_modules.image_generator.ImageGeneratorModule.generate_image') as mock_image:
+
+        with patch(
+            "dspy_meme_gen.dspy_modules.image_generator.ImageGeneratorModule.generate_image"
+        ) as mock_image:
             mock_image.return_value = "/static/test.png"
-            
+
             response = client.post("/api/v1/memes/", json=valid_request)
             # Even with mocks, might get 500 due to other dependencies
             assert response.status_code in [201, 500]

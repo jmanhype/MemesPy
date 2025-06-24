@@ -3,19 +3,24 @@
 from typing import Dict, Any, List, TypedDict
 import dspy
 
+
 class FactCheck(TypedDict):
     """Result of checking a single factual claim."""
+
     claim: str
     is_factual: bool
     confidence: float
     correction: str
 
+
 class FactualityResult(TypedDict):
     """Overall result of factuality verification."""
+
     is_factual: bool
     confidence: float
     factual_issues: List[str]
     corrections: List[str]
+
 
 class FactualityAgent(dspy.Module):
     """
@@ -25,9 +30,7 @@ class FactualityAgent(dspy.Module):
 
     def __init__(self):
         super().__init__()
-        self.claim_extractor = dspy.ChainOfThought(
-            "concept: str -> claims: List[str]"
-        )
+        self.claim_extractor = dspy.ChainOfThought("concept: str -> claims: List[str]")
         self.fact_checker = dspy.ChainOfThought(
             "claim: str -> is_factual: bool, confidence: float, correction: str"
         )
@@ -52,22 +55,21 @@ class FactualityAgent(dspy.Module):
 
             if not claims:
                 return FactualityResult(
-                    is_factual=True,
-                    confidence=1.0,
-                    factual_issues=[],
-                    corrections=[]
+                    is_factual=True, confidence=1.0, factual_issues=[], corrections=[]
                 )
 
             # Check each claim
             fact_checks: List[FactCheck] = []
             for claim in claims:
                 check_result = self.fact_checker(claim=claim)
-                fact_checks.append(FactCheck(
-                    claim=claim,
-                    is_factual=check_result.is_factual,
-                    confidence=check_result.confidence,
-                    correction=check_result.correction
-                ))
+                fact_checks.append(
+                    FactCheck(
+                        claim=claim,
+                        is_factual=check_result.is_factual,
+                        confidence=check_result.confidence,
+                        correction=check_result.correction,
+                    )
+                )
 
             # Generate overall assessment
             assessment = self.assessment_generator(fact_checks=fact_checks)
@@ -75,8 +77,8 @@ class FactualityAgent(dspy.Module):
                 is_factual=assessment.is_factual,
                 confidence=assessment.confidence,
                 factual_issues=assessment.factual_issues,
-                corrections=assessment.corrections
+                corrections=assessment.corrections,
             )
 
         except Exception as e:
-            raise RuntimeError(f"Failed to verify factual claims: {str(e)}") 
+            raise RuntimeError(f"Failed to verify factual claims: {str(e)}")

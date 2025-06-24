@@ -9,6 +9,7 @@ import uuid
 
 class TaskStatus(Enum):
     """Status of a task in the system."""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -19,21 +20,22 @@ class TaskStatus(Enum):
 
 class TaskType(Enum):
     """Types of tasks in the meme generation pipeline."""
+
     # Verification tasks
     FACTUALITY_CHECK = "factuality_check"
     APPROPRIATENESS_CHECK = "appropriateness_check"
     INSTRUCTION_CHECK = "instruction_check"
-    
+
     # Generation tasks
     TREND_ANALYSIS = "trend_analysis"
     FORMAT_SELECTION = "format_selection"
     PROMPT_GENERATION = "prompt_generation"
     IMAGE_RENDERING = "image_rendering"
-    
+
     # Scoring and refinement
     SCORING = "scoring"
     REFINEMENT = "refinement"
-    
+
     # Composite tasks
     VERIFICATION_BUNDLE = "verification_bundle"
     GENERATION_BUNDLE = "generation_bundle"
@@ -41,6 +43,7 @@ class TaskType(Enum):
 
 class TaskPriority(Enum):
     """Priority levels for task execution."""
+
     LOW = 1
     NORMAL = 2
     HIGH = 3
@@ -50,6 +53,7 @@ class TaskPriority(Enum):
 @dataclass
 class TaskResult:
     """Result of a task execution."""
+
     task_id: str
     status: TaskStatus
     result: Optional[Any] = None
@@ -59,12 +63,12 @@ class TaskResult:
     duration_ms: Optional[float] = None
     retries: int = 0
     metadata: Dict[str, Any] = field(default_factory=dict)
-    
+
     @property
     def is_success(self) -> bool:
         """Check if task completed successfully."""
         return self.status == TaskStatus.COMPLETED
-    
+
     @property
     def is_failure(self) -> bool:
         """Check if task failed."""
@@ -74,6 +78,7 @@ class TaskResult:
 @dataclass
 class Task:
     """Definition of a task to be executed."""
+
     task_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     task_type: TaskType = TaskType.PROMPT_GENERATION
     priority: TaskPriority = TaskPriority.NORMAL
@@ -85,11 +90,11 @@ class Task:
     dependencies: list[str] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
-    
+
     def __hash__(self):
         """Make task hashable for use in sets."""
         return hash(self.task_id)
-    
+
     def __eq__(self, other):
         """Compare tasks by ID."""
         if isinstance(other, Task):

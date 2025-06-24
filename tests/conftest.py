@@ -19,13 +19,7 @@ os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY", "test-key")
 @pytest.fixture
 def mock_openai_response():
     """Mock OpenAI API response."""
-    return {
-        "choices": [{
-            "message": {
-                "content": "Test meme content"
-            }
-        }]
-    }
+    return {"choices": [{"message": {"content": "Test meme content"}}]}
 
 
 @pytest.fixture
@@ -35,5 +29,5 @@ def sample_meme_request():
         "topic": "testing",
         "format": "drake",
         "context": "When tests finally pass",
-        "style": "humor"
+        "style": "humor",
     }

@@ -4,15 +4,18 @@ from typing import Dict, Any, List
 from dataclasses import dataclass
 import dspy
 
+
 @dataclass
 class MemeScore:
     """Represents the score and feedback for a meme."""
+
     humor_score: float
     clarity_score: float
     creativity_score: float
     shareability_score: float
     final_score: float
     feedback: str
+
 
 class ScoringAgent(dspy.Module):
     """
@@ -31,7 +34,7 @@ class ScoringAgent(dspy.Module):
         meme_candidates: List[Dict[str, Any]],
         factuality_check: Dict[str, Any] = None,
         instruction_check: Dict[str, Any] = None,
-        appropriateness_check: Dict[str, Any] = None
+        appropriateness_check: Dict[str, Any] = None,
     ) -> List[Dict[str, Any]]:
         """
         Score a list of meme candidates.
@@ -49,17 +52,14 @@ class ScoringAgent(dspy.Module):
 
         for meme in meme_candidates:
             # Get base scores from LLM
-            score_result = self.scorer(
-                caption=meme["caption"],
-                image_url=meme["image_url"]
-            )
+            score_result = self.scorer(caption=meme["caption"], image_url=meme["image_url"])
 
             # Calculate weighted component score
             weighted_score = (
-                (score_result.humor_score * 0.35) +
-                (score_result.clarity_score * 0.25) +
-                (score_result.creativity_score * 0.20) +
-                (score_result.shareability_score * 0.20)
+                (score_result.humor_score * 0.35)
+                + (score_result.clarity_score * 0.25)
+                + (score_result.creativity_score * 0.20)
+                + (score_result.shareability_score * 0.20)
             )
 
             # Apply verification factors if available
@@ -82,7 +82,7 @@ class ScoringAgent(dspy.Module):
                 creativity_score=score_result.creativity_score,
                 shareability_score=score_result.shareability_score,
                 final_score=weighted_score,
-                feedback=score_result.feedback
+                feedback=score_result.feedback,
             )
 
             # Add scores to meme info
@@ -98,7 +98,10 @@ class ScoringAgent(dspy.Module):
         """Calculate adjustment factor based on factuality check."""
         if factuality_check["is_factual"]:
             return 1.0
-        elif factuality_check.get("factual_issues", []) and len(factuality_check["factual_issues"]) < 2:
+        elif (
+            factuality_check.get("factual_issues", [])
+            and len(factuality_check["factual_issues"]) < 2
+        ):
             return 0.7  # Minor issues
         else:
             return 0.3  # Major issues
@@ -114,4 +117,4 @@ class ScoringAgent(dspy.Module):
 
     def _get_appropriateness_factor(self, appropriateness_check: Dict[str, Any]) -> float:
         """Calculate adjustment factor based on appropriateness check."""
-        return 1.0 if appropriateness_check["is_appropriate"] else 0.0 
+        return 1.0 if appropriateness_check["is_appropriate"] else 0.0

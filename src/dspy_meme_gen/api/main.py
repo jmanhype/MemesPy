@@ -13,6 +13,7 @@ from ..models.db_models.metadata import Base as MetadataBase
 from ..models.db_models.privacy_metadata import Base as PrivacyBase
 from .middleware.privacy_middleware import PrivacyMiddleware, ConsentEnforcementMiddleware
 from ..models.connection import db_manager
+
 # Import dependency for shutdown event
 from .dependencies import close_connections
 
@@ -58,16 +59,18 @@ app.include_router(memes.router, prefix="/api/v1/memes", tags=["memes"])
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 app.include_router(privacy.router, prefix="/api", tags=["privacy"])
 
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup, including DSPy configuration and async event sourcing."""
     logger.info(f"Starting {settings.app_name} v{settings.app_version}")
     logger.info(f"Environment: {settings.app_env}")
-    
+
     # Start privacy tasks
     from ..tasks.privacy_tasks import start_privacy_tasks
+
     start_privacy_tasks()
-    
+
     # --- Configure DSPy ---
     if settings.openai_api_key and settings.dspy_model:
         try:
@@ -92,11 +95,12 @@ async def startup_event():
             "DSPy configuration skipped: OpenAI API key or DSPy model name missing in settings."
         )
     # --- End DSPy Configuration ---
-    
+
     # --- Initialize Async Event Sourcing System ---
     try:
         logger.info("Initializing async event sourcing system...")
         from ..system_setup import startup_system
+
         await startup_system()
         logger.info("Async event sourcing system initialized successfully")
     except Exception as e:
@@ -105,24 +109,27 @@ async def startup_event():
         # For now, we'll log the error but continue startup
     # --- End Event Sourcing Initialization ---
 
+
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean up resources on shutdown."""
     logger.info(f"Shutting down {settings.app_name}")
-    
+
     # --- Shutdown Async Event Sourcing System ---
     try:
         logger.info("Shutting down async event sourcing system...")
         from ..system_setup import shutdown_system_handler
+
         await shutdown_system_handler()
         logger.info("Async event sourcing system shutdown completed")
     except Exception as e:
         logger.error(f"Failed to shutdown async event sourcing system: {e}", exc_info=True)
     # --- End Event Sourcing Shutdown ---
-    
+
     # Stop privacy tasks
     from ..tasks.privacy_tasks import stop_privacy_tasks
+
     stop_privacy_tasks()
-    
+
     # Close cache connections
-    await close_connections() 
+    await close_connections()

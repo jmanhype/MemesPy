@@ -11,6 +11,7 @@ from enum import Enum
 
 class EventType(Enum):
     """Enumeration of all event types in the system."""
+
     # Meme Events
     MEME_GENERATION_REQUESTED = "meme.generation.requested"
     MEME_GENERATED = "meme.generated"
@@ -22,23 +23,23 @@ class EventType(Enum):
     MEME_VIEWED = "meme.viewed"
     MEME_SHARED = "meme.shared"
     MEME_DELETED = "meme.deleted"
-    
+
     # Template Events
     TEMPLATE_CREATED = "template.created"
     TEMPLATE_UPDATED = "template.updated"
     TEMPLATE_DELETED = "template.deleted"
     TEMPLATE_POPULARITY_UPDATED = "template.popularity.updated"
-    
+
     # Trend Events
     TREND_DISCOVERED = "trend.discovered"
     TREND_UPDATED = "trend.updated"
     TREND_EXPIRED = "trend.expired"
-    
+
     # Verification Events
     VERIFICATION_REQUESTED = "verification.requested"
     VERIFICATION_COMPLETED = "verification.completed"
     VERIFICATION_FAILED = "verification.failed"
-    
+
     # System Events
     SNAPSHOT_CREATED = "system.snapshot.created"
     PROJECTION_REBUILT = "system.projection.rebuilt"
@@ -49,6 +50,7 @@ class EventType(Enum):
 @dataclass
 class EventMetadata:
     """Metadata attached to every event."""
+
     event_id: UUID = field(default_factory=uuid4)
     event_type: str = ""
     aggregate_id: UUID = field(default_factory=uuid4)
@@ -64,25 +66,26 @@ class EventMetadata:
 @dataclass
 class DomainEvent(ABC):
     """Base class for all domain events."""
+
     metadata: EventMetadata = field(default_factory=EventMetadata)
-    
+
     def __post_init__(self):
         """Initialize event metadata after dataclass creation."""
         if not self.metadata.event_type:
             self.metadata.event_type = self.get_event_type()
-    
+
     @classmethod
-    @abstractmethod 
+    @abstractmethod
     def get_event_type(cls) -> str:
         """Return the event type string."""
         pass
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert event to dictionary for storage."""
         # Get all fields except metadata
         data_fields = {}
         for field_info in self.__dataclass_fields__.values():
-            if field_info.name != 'metadata':
+            if field_info.name != "metadata":
                 value = getattr(self, field_info.name)
                 # Convert UUIDs to strings
                 if isinstance(value, UUID):
@@ -91,7 +94,7 @@ class DomainEvent(ABC):
                     data_fields[field_info.name] = value.isoformat()
                 else:
                     data_fields[field_info.name] = value
-        
+
         return {
             "metadata": {
                 "event_id": str(self.metadata.event_id),
@@ -101,15 +104,19 @@ class DomainEvent(ABC):
                 "aggregate_version": self.metadata.aggregate_version,
                 "timestamp": self.metadata.timestamp.isoformat(),
                 "user_id": self.metadata.user_id,
-                "correlation_id": str(self.metadata.correlation_id) if self.metadata.correlation_id else None,
-                "causation_id": str(self.metadata.causation_id) if self.metadata.causation_id else None,
-                "metadata": self.metadata.metadata
+                "correlation_id": (
+                    str(self.metadata.correlation_id) if self.metadata.correlation_id else None
+                ),
+                "causation_id": (
+                    str(self.metadata.causation_id) if self.metadata.causation_id else None
+                ),
+                "metadata": self.metadata.metadata,
             },
-            "data": data_fields
+            "data": data_fields,
         }
-    
+
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'DomainEvent':
+    def from_dict(cls, data: Dict[str, Any]) -> "DomainEvent":
         """Reconstruct event from dictionary."""
         # Convert string UUIDs back to UUID objects
         event_data = data["data"].copy()
@@ -117,22 +124,22 @@ class DomainEvent(ABC):
             if field_name in event_data:
                 field_type = field_info.type
                 value = event_data[field_name]
-                
+
                 # Handle UUID conversion
                 if field_type == UUID and isinstance(value, str):
                     event_data[field_name] = UUID(value)
                 # Handle Optional[UUID] conversion
-                elif hasattr(field_type, '__origin__') and field_type.__origin__ is Union:
+                elif hasattr(field_type, "__origin__") and field_type.__origin__ is Union:
                     args = field_type.__args__
                     if UUID in args and isinstance(value, str):
                         event_data[field_name] = UUID(value)
                 # Handle datetime conversion
                 elif field_type == datetime and isinstance(value, str):
                     event_data[field_name] = datetime.fromisoformat(value)
-        
+
         # Create event instance
         event = cls(**event_data)
-        
+
         # Reconstruct metadata
         meta_data = data["metadata"]
         event.metadata = EventMetadata(
@@ -143,47 +150,50 @@ class DomainEvent(ABC):
             aggregate_version=meta_data["aggregate_version"],
             timestamp=datetime.fromisoformat(meta_data["timestamp"]),
             user_id=meta_data.get("user_id"),
-            correlation_id=UUID(meta_data["correlation_id"]) if meta_data.get("correlation_id") else None,
+            correlation_id=(
+                UUID(meta_data["correlation_id"]) if meta_data.get("correlation_id") else None
+            ),
             causation_id=UUID(meta_data["causation_id"]) if meta_data.get("causation_id") else None,
-            metadata=meta_data.get("metadata", {})
+            metadata=meta_data.get("metadata", {}),
         )
-        
+
         return event
-    
-    def with_metadata(self, **kwargs) -> 'DomainEvent':
+
+    def with_metadata(self, **kwargs) -> "DomainEvent":
         """Update event metadata."""
         for key, value in kwargs.items():
             if hasattr(self.metadata, key):
                 setattr(self.metadata, key, value)
         return self
-    
+
     def to_json(self) -> str:
         """Serialize event to JSON."""
         return json.dumps(self.to_dict(), default=str)
-    
+
     @classmethod
-    def from_json(cls, json_str: str) -> 'DomainEvent':
+    def from_json(cls, json_str: str) -> "DomainEvent":
         """Deserialize event from JSON."""
         return cls.from_dict(json.loads(json_str))
 
 
 class EventRegistry:
     """Registry for mapping event types to classes."""
+
     _registry: Dict[str, type] = {}
-    
+
     @classmethod
     def register(cls, event_class: type):
         """Register an event class decorator."""
-        if hasattr(event_class, 'get_event_type'):
+        if hasattr(event_class, "get_event_type"):
             event_type = event_class.get_event_type()
             cls._registry[event_type] = event_class
         return event_class
-    
+
     @classmethod
     def get_class(cls, event_type: str) -> Optional[type]:
         """Get event class by type."""
         return cls._registry.get(event_type)
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> Optional[DomainEvent]:
         """Create event instance from dictionary."""
@@ -192,7 +202,7 @@ class EventRegistry:
         if event_class:
             return event_class.from_dict(data)
         return None
-    
+
     @classmethod
     def list_registered_events(cls) -> Dict[str, type]:
         """List all registered event types."""

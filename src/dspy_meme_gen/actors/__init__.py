@@ -1,30 +1,23 @@
 """Actor system for meme generation."""
 
 from .base_messages import Message, Request, Response, Event
-from .core import (
-    Actor,
-    ActorRef,
-    ActorSystem
-)
+from .core import Actor, ActorRef, ActorSystem
 
 from .circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerConfig,
     CircuitState,
     CircuitBreakerError,
-    circuit_breaker_registry
+    circuit_breaker_registry,
 )
 
-from .mailbox import (
-    ActorMailbox,
-    OverflowStrategy
-)
+from .mailbox import ActorMailbox, OverflowStrategy
 
 from .meme_generator_actor import (
     MemeGeneratorActor,
     MemeGenerationState,
     GenerateMemeRequest,
-    MemeGeneratedEvent
+    MemeGeneratedEvent,
 )
 
 from .text_generator_actor import (
@@ -32,7 +25,7 @@ from .text_generator_actor import (
     TextGenerationState,
     GenerateTextRequest,
     VerifyTextRequest,
-    TextGeneratedEvent
+    TextGeneratedEvent,
 )
 
 from .image_generator_actor import (
@@ -40,7 +33,7 @@ from .image_generator_actor import (
     ImageGenerationState,
     GenerateImageRequest,
     ProcessImageRequest,
-    ImageGeneratedEvent
+    ImageGeneratedEvent,
 )
 
 from .flow_control import (
@@ -51,7 +44,7 @@ from .flow_control import (
     SlidingWindowFlowController,
     AdaptiveWindowFlowController,
     BackpressureManager,
-    FlowControlledActor
+    FlowControlledActor,
 )
 
 from .supervisor import (
@@ -59,7 +52,7 @@ from .supervisor import (
     RestartStrategy,
     SupervisorDirective,
     RestartPolicy,
-    SupervisorTree
+    SupervisorTree,
 )
 
 from .work_stealing_pool import (
@@ -67,57 +60,51 @@ from .work_stealing_pool import (
     WorkStealingWorker,
     StealingStrategy,
     TaskPriority,
-    WorkItem
+    WorkItem,
 )
 
 from .adaptive_concurrency import (
     AdaptiveConcurrencyController,
     ConcurrencyStrategy,
     ConcurrencyLimitedActor,
-    LittlesLawCalculator
+    LittlesLawCalculator,
 )
 
 __all__ = [
     # Core actor system
     "Actor",
-    "ActorRef", 
+    "ActorRef",
     "ActorSystem",
     "Message",
     "Request",
     "Response",
     "Event",
-    
     # Circuit breaker
     "CircuitBreaker",
     "CircuitBreakerConfig",
     "CircuitState",
     "CircuitBreakerError",
     "circuit_breaker_registry",
-    
     # Mailbox
     "ActorMailbox",
     "OverflowStrategy",
-    
     # Meme Generator Actor
     "MemeGeneratorActor",
     "MemeGenerationState",
     "GenerateMemeRequest",
     "MemeGeneratedEvent",
-    
     # Text Generator Actor
     "TextGeneratorActor",
-    "TextGenerationState", 
+    "TextGenerationState",
     "GenerateTextRequest",
     "VerifyTextRequest",
     "TextGeneratedEvent",
-    
     # Image Generator Actor
     "ImageGeneratorActor",
     "ImageGenerationState",
     "GenerateImageRequest",
     "ProcessImageRequest",
     "ImageGeneratedEvent",
-    
     # Flow Control
     "FlowController",
     "FlowControlStrategy",
@@ -127,21 +114,18 @@ __all__ = [
     "AdaptiveWindowFlowController",
     "BackpressureManager",
     "FlowControlledActor",
-    
     # Supervision
     "Supervisor",
     "RestartStrategy",
     "SupervisorDirective",
     "RestartPolicy",
     "SupervisorTree",
-    
     # Work Stealing
     "WorkStealingPool",
     "WorkStealingWorker",
     "StealingStrategy",
     "TaskPriority",
     "WorkItem",
-    
     # Adaptive Concurrency
     "AdaptiveConcurrencyController",
     "ConcurrencyStrategy",

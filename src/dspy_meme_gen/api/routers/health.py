@@ -7,11 +7,12 @@ from ...config.config import settings
 
 router = APIRouter()
 
+
 @router.get("/health", response_model=Dict[str, Any])
 async def health_check() -> Dict[str, Any]:
     """
     Health check endpoint.
-    
+
     Returns:
         Dict containing health status information
     """
@@ -21,6 +22,6 @@ async def health_check() -> Dict[str, Any]:
         "env": settings.app_env,
         "dspy": {
             "model": settings.dspy_model,
-            "openai_configured": settings.openai_api_key is not None
-        }
-    } 
+            "openai_configured": settings.openai_api_key is not None,
+        },
+    }

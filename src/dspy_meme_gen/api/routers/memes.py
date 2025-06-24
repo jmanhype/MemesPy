@@ -15,6 +15,7 @@ from ...models.schemas.memes import (
     MemeResponse,
     MemeListResponse,
 )
+
 # Legacy imports for backward compatibility
 from ...models.db_models.memes import MemeDB
 from ...models.db_models.metadata import MemeMetadata, GenerationLog
@@ -48,10 +49,10 @@ concurrency_manager = get_concurrency_manager()
 async def _async_legacy_generation(topic: str, format: str) -> Dict[str, Any]:
     """Async wrapper for legacy meme generation."""
     import asyncio
-    
+
     # Run the synchronous legacy generation in a thread pool
     loop = asyncio.get_event_loop()
-    
+
     def sync_generation():
         # Initialize metadata collector
         metadata_collector = MetadataCollector()
@@ -60,38 +61,32 @@ async def _async_legacy_generation(topic: str, format: str) -> Dict[str, Any]:
             format=format,
             request_id=str(uuid.uuid4()),
             client_ip="background",
-            user_agent="concurrency_manager"
+            user_agent="concurrency_manager",
         )
-        
+
         # Generate meme content using DSPy
         meme_text, image_prompt = meme_predictor.forward(topic=topic, format=format)
-        
+
         if meme_text is None or image_prompt is None:
             raise RuntimeError("Meme generation failed (predictor returned None)")
-        
+
         # Set metadata collector on image generator
         image_generator.metadata_collector = metadata_collector
-        
+
         # Generate image
-        image_url = image_generator.generate(
-            prompt=image_prompt,
-            meme_text=meme_text
-        )
-        
+        image_url = image_generator.generate(prompt=image_prompt, meme_text=meme_text)
+
         if not image_url:
             raise RuntimeError("Failed to generate meme image")
-        
+
         # Calculate score
         score = _calculate_quality_score(metadata_collector.metadata)
-        
+
         # Finalize metadata
         final_metadata = metadata_collector.finalize(
-            score=score,
-            image_url=image_url,
-            meme_text=meme_text,
-            success=True
+            score=score, image_url=image_url, meme_text=meme_text, success=True
         )
-        
+
         return {
             "id": str(uuid.uuid4()),
             "topic": topic,
@@ -100,63 +95,57 @@ async def _async_legacy_generation(topic: str, format: str) -> Dict[str, Any]:
             "image_url": image_url,
             "created_at": datetime.utcnow().isoformat(),
             "score": score,
-            "metadata": final_metadata
+            "metadata": final_metadata,
         }
-    
+
     # Run in thread pool to avoid blocking the event loop
     return await loop.run_in_executor(None, sync_generation)
 
 
 @router.post("/async", status_code=status.HTTP_202_ACCEPTED)
 async def generate_meme_async(
-    request: MemeGenerationRequest,
-    http_request: Request
+    request: MemeGenerationRequest, http_request: Request
 ) -> Dict[str, str]:
     """
     Generate a meme asynchronously with immediate response.
-    
+
     This endpoint immediately returns a request ID and processes the meme
     generation in the background using the concurrency manager.
-    
+
     Args:
         request: The meme generation request
         http_request: The HTTP request object
-        
+
     Returns:
         Dict with request_id and status endpoint
-        
+
     Raises:
         HTTPException: If system is overloaded (queue full or circuit breaker open)
     """
     try:
         # Submit to concurrency manager
         request_id = await concurrency_manager.submit_request(
-            topic=request.topic,
-            format=request.format,
-            generation_func=_async_legacy_generation
+            topic=request.topic, format=request.format, generation_func=_async_legacy_generation
         )
-        
+
         return {
             "request_id": request_id,
             "status": "accepted",
             "status_url": f"/api/v1/memes/status/{request_id}",
-            "message": "Meme generation request accepted and queued for processing"
+            "message": "Meme generation request accepted and queued for processing",
         }
-        
+
     except asyncio.QueueFull:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="System overloaded - queue is full. Please try again later."
+            detail="System overloaded - queue is full. Please try again later.",
         )
     except RuntimeError as e:
         if "circuit breaker" in str(e).lower():
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=str(e)
-            )
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to submit request: {str(e)}"
+            detail=f"Failed to submit request: {str(e)}",
         )
 
 
@@ -164,47 +153,49 @@ async def generate_meme_async(
 async def get_generation_status(request_id: str) -> Dict[str, Any]:
     """
     Get the status of an async meme generation request.
-    
+
     Args:
         request_id: The request ID returned by /async endpoint
-        
+
     Returns:
         Status information including current state and result if completed
-        
+
     Raises:
         HTTPException: If request ID is not found
     """
     request_status = await concurrency_manager.get_request_status(request_id)
-    
+
     if not request_status:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Request not found"
-        )
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
+
     response = {
         "request_id": request_id,
         "status": request_status.status.value,
         "created_at": request_status.created_at,
         "topic": request_status.topic,
-        "format": request_status.format
+        "format": request_status.format,
     }
-    
+
     # Add timing information if available
     if request_status.processing_start:
         response["processing_start"] = request_status.processing_start
         if request_status.processing_end:
             response["processing_end"] = request_status.processing_end
-            response["processing_time"] = request_status.processing_end - request_status.processing_start
+            response["processing_time"] = (
+                request_status.processing_end - request_status.processing_start
+            )
         else:
             response["processing_time"] = time.time() - request_status.processing_start
-    
+
     # Add result or error
     if request_status.status == RequestStatus.COMPLETED and request_status.result:
         response["result"] = request_status.result
-    elif request_status.status in (RequestStatus.FAILED, RequestStatus.TIMEOUT) and request_status.error:
+    elif (
+        request_status.status in (RequestStatus.FAILED, RequestStatus.TIMEOUT)
+        and request_status.error
+    ):
         response["error"] = request_status.error
-    
+
     return response
 
 
@@ -220,21 +211,21 @@ async def generate_meme(
     http_request: Request,
     use_legacy: bool = False,
     db: Session = Depends(get_db),
-    cache = Depends(get_cache)
+    cache=Depends(get_cache),
 ) -> MemeResponse:
     """
     Generate a new meme using async event sourcing or legacy system.
-    
+
     Args:
         request: The meme generation request containing topic and format
         http_request: The HTTP request object for metadata
         use_legacy: If True, use legacy generation system
         db: Database session
         cache: Cache connection
-        
+
     Returns:
         The generated meme with text and image
-    
+
     Raises:
         HTTPException: If meme generation fails
     """
@@ -243,19 +234,19 @@ async def generate_meme(
         try:
             # Use new async event sourcing system
             user_id = http_request.headers.get("x-user-id", "anonymous")
-            
+
             result = await async_meme_service.create_meme(
                 topic=request.topic,
                 format_id=request.format,
-                style=getattr(request, 'style', None),
+                style=getattr(request, "style", None),
                 parameters={
-                    'client_ip': http_request.client.host if http_request.client else "unknown",
-                    'user_agent': http_request.headers.get("user-agent", "unknown"),
-                    'api_version': settings.app_version
+                    "client_ip": http_request.client.host if http_request.client else "unknown",
+                    "user_agent": http_request.headers.get("user-agent", "unknown"),
+                    "api_version": settings.app_version,
                 },
-                user_id=user_id
+                user_id=user_id,
             )
-            
+
             # Convert to legacy response format
             return MemeResponse(
                 id=result["meme_id"],
@@ -266,13 +257,13 @@ async def generate_meme(
                 created_at=datetime.utcnow().isoformat(),
                 status=result["status"],
                 request_id=result["request_id"],
-                message=result["message"]
+                message=result["message"],
             )
-            
+
         except Exception as e:
             # Fall back to legacy system on error
             use_legacy = True
-    
+
     if use_legacy:
         # Legacy generation system (existing code)
         # Initialize metadata collector
@@ -282,30 +273,29 @@ async def generate_meme(
             format=request.format,
             request_id=str(uuid.uuid4()),
             client_ip=http_request.client.host if http_request.client else "unknown",
-            user_agent=http_request.headers.get("user-agent", "unknown")
+            user_agent=http_request.headers.get("user-agent", "unknown"),
         )
-        
+
         # Check cache first
         cache_key = f"meme:{request.topic}:{request.format}"
         cached_meme = await cache.get(cache_key)
         if cached_meme:
-            metadata_collector.metadata['cache_hit'] = True
+            metadata_collector.metadata["cache_hit"] = True
             return MemeResponse(**json.loads(cached_meme))
-        
-        metadata_collector.metadata['cache_hit'] = False
-        
+
+        metadata_collector.metadata["cache_hit"] = False
+
         try:
             # Track DSPy generation
             dspy_start = time.time()
-            
+
             # Generate meme content using DSPy
             meme_text, image_prompt = meme_predictor.forward(
-                topic=request.topic,
-                format=request.format
+                topic=request.topic, format=request.format
             )
-            
+
             dspy_duration = (time.time() - dspy_start) * 1000
-            
+
             # Track DSPy metadata
             metadata_collector.track_dspy_generation(
                 predictor_class=meme_predictor.__class__.__name__,
@@ -314,35 +304,35 @@ async def generate_meme(
                 duration_ms=dspy_duration,
                 model_info={
                     "model": settings.dspy_model,
-                    "temperature": getattr(settings, 'dspy_temperature', 0.7)
-                }
+                    "temperature": getattr(settings, "dspy_temperature", 0.7),
+                },
             )
-            
+
             # Check if generation failed (fallback might return None)
             if meme_text is None or image_prompt is None:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Meme generation failed (predictor returned None)"
+                    detail="Meme generation failed (predictor returned None)",
                 )
-            
+
             # Set metadata collector on image generator
             image_generator.metadata_collector = metadata_collector
-            
+
             # Generate image using the configured provider
             image_url = image_generator.generate(
                 prompt=image_prompt,
-                meme_text=meme_text  # Pass meme text for providers that support text overlay
+                meme_text=meme_text,  # Pass meme text for providers that support text overlay
             )
-            
+
             if not image_url:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to generate meme image"
+                    detail="Failed to generate meme image",
                 )
-            
+
             # Calculate quality score based on metadata
             score = _calculate_quality_score(metadata_collector.metadata)
-            
+
             # Create meme response
             meme = MemeResponse(
                 id=str(uuid.uuid4()),
@@ -350,20 +340,17 @@ async def generate_meme(
                 format=request.format,
                 text=meme_text,
                 image_url=image_url,
-                created_at=datetime.utcnow().isoformat()
+                created_at=datetime.utcnow().isoformat(),
             )
-            
+
             # Finalize metadata
             final_metadata = metadata_collector.finalize(
-                score=score,
-                image_url=image_url,
-                meme_text=meme_text,
-                success=True
+                score=score, image_url=image_url, meme_text=meme_text, success=True
             )
-            
+
             # Store in cache
             await cache.set(cache_key, json.dumps(meme.model_dump()), ex=settings.cache_ttl)
-            
+
             # Store in database with enhanced metadata
             db_meme = MemeMetadata(
                 id=meme.id,
@@ -373,100 +360,91 @@ async def generate_meme(
                 image_url=meme.image_url,
                 created_at=datetime.fromisoformat(meme.created_at),
                 score=score,
-                generation_metadata=final_metadata.get('generation_metadata', {}),
-                image_metadata=final_metadata.get('image_metadata', {}),
-                dspy_metadata=final_metadata.get('dspy_metadata', {}),
+                generation_metadata=final_metadata.get("generation_metadata", {}),
+                image_metadata=final_metadata.get("image_metadata", {}),
+                dspy_metadata=final_metadata.get("dspy_metadata", {}),
                 technical_metadata={
-                    'api_version': settings.app_version,
-                    'client_ip': http_request.client.host if http_request.client else "unknown",
-                    'user_agent': http_request.headers.get("user-agent", "unknown"),
-                    'request_id': generation_id,
-                    'server_region': settings.app_env,
-                    'cache_hit': False,
-                    'response_time_ms': final_metadata.get('total_duration_ms', 0),
-                    'legacy_generation': True
+                    "api_version": settings.app_version,
+                    "client_ip": http_request.client.host if http_request.client else "unknown",
+                    "user_agent": http_request.headers.get("user-agent", "unknown"),
+                    "request_id": generation_id,
+                    "server_region": settings.app_env,
+                    "cache_hit": False,
+                    "response_time_ms": final_metadata.get("total_duration_ms", 0),
+                    "legacy_generation": True,
                 },
-                cost_metadata=final_metadata.get('cost_metadata', {})
+                cost_metadata=final_metadata.get("cost_metadata", {}),
             )
             db.add(db_meme)
-            
+
             # Also log the generation
             generation_log = GenerationLog(
                 meme_id=meme.id,
-                request_type='full_generation_legacy',
-                request_payload={
-                    'topic': request.topic,
-                    'format': request.format
-                },
-                response_status='success',
-                response_payload={'meme_id': meme.id},
-                response_time_ms=int(final_metadata.get('total_duration_ms', 0)),
+                request_type="full_generation_legacy",
+                request_payload={"topic": request.topic, "format": request.format},
+                response_status="success",
+                response_payload={"meme_id": meme.id},
+                response_time_ms=int(final_metadata.get("total_duration_ms", 0)),
                 model_name=settings.dspy_model,
-                model_provider='openai'
+                model_provider="openai",
             )
             db.add(generation_log)
-            
+
             db.commit()
-            
+
             return meme
-            
+
         except Exception as e:
             db.rollback()
-            
+
             # Finalize metadata with error
             final_metadata = metadata_collector.finalize(
-                score=0.0,
-                image_url="",
-                meme_text="",
-                success=False,
-                error=str(e)
+                score=0.0, image_url="", meme_text="", success=False, error=str(e)
             )
-            
+
             # Log the failed generation
             try:
                 generation_log = GenerationLog(
                     meme_id=None,
-                    request_type='full_generation_legacy',
-                    request_payload={
-                        'topic': request.topic,
-                        'format': request.format
-                    },
-                    response_status='error',
-                    response_time_ms=int(final_metadata.get('total_duration_ms', 0)),
+                    request_type="full_generation_legacy",
+                    request_payload={"topic": request.topic, "format": request.format},
+                    response_status="error",
+                    response_time_ms=int(final_metadata.get("total_duration_ms", 0)),
                     error_type=type(e).__name__,
                     error_message=str(e),
                     model_name=settings.dspy_model,
-                    model_provider='openai'
+                    model_provider="openai",
                 )
                 db.add(generation_log)
                 db.commit()
             except:
                 pass
-            
+
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to generate meme: {str(e)}"
+                detail=f"Failed to generate meme: {str(e)}",
             )
 
 
 def _calculate_quality_score(metadata: dict) -> float:
     """Calculate quality score based on generation metadata."""
     score = 0.5  # Base score
-    
+
     # Efficiency bonus
-    if metadata.get('generation_metadata'):
-        efficiency = metadata['generation_metadata'].get('efficiency_score', 0)
+    if metadata.get("generation_metadata"):
+        efficiency = metadata["generation_metadata"].get("efficiency_score", 0)
         score += efficiency * 0.2
-    
+
     # Success bonus
-    if metadata.get('success', False):
+    if metadata.get("success", False):
         score += 0.2
-    
+
     # No retry bonus
-    if metadata.get('generation_metadata', {}).get('retry_count', 0) == 0:
+    if metadata.get("generation_metadata", {}).get("retry_count", 0) == 0:
         score += 0.1
-    
+
     return min(1.0, score)
+
 
 @router.get("/", response_model=MemeListResponse)
 async def list_memes(
@@ -477,11 +455,11 @@ async def list_memes(
     format: Optional[str] = None,
     use_legacy: bool = False,
     db: Session = Depends(get_db),
-    cache = Depends(get_cache)
+    cache=Depends(get_cache),
 ) -> MemeListResponse:
     """
     List generated memes using async event sourcing or legacy system.
-    
+
     Args:
         limit: Maximum number of memes to return
         offset: Offset for pagination
@@ -491,7 +469,7 @@ async def list_memes(
         use_legacy: If True, use legacy database
         db: Database session
         cache: Cache connection
-        
+
     Returns:
         List of memes with pagination info
     """
@@ -499,13 +477,9 @@ async def list_memes(
     if not use_legacy:
         try:
             projections = await async_meme_service.get_memes(
-                status=status,
-                topic=topic,
-                format=format,
-                limit=limit,
-                offset=offset
+                status=status, topic=topic, format=format, limit=limit, offset=offset
             )
-            
+
             # Convert to legacy response format
             meme_responses = [
                 MemeResponse(
@@ -517,43 +491,49 @@ async def list_memes(
                     created_at=meme["created_at"],
                     status=meme.get("status", "unknown"),
                     request_id=meme.get("request_id"),
-                    **{k: v for k, v in meme.items() if k not in ["meme_id", "topic", "format", "text", "image_url", "created_at"]}
-                ) for meme in projections
+                    **{
+                        k: v
+                        for k, v in meme.items()
+                        if k
+                        not in ["meme_id", "topic", "format", "text", "image_url", "created_at"]
+                    },
+                )
+                for meme in projections
             ]
-            
+
             return MemeListResponse(
                 items=meme_responses,
                 total=len(meme_responses),  # Note: actual count would need additional query
                 limit=limit,
-                offset=offset
+                offset=offset,
             )
-            
+
         except Exception as e:
             # Fall back to legacy on error
             use_legacy = True
-    
+
     if use_legacy:
         # Check cache first
         cache_key = f"memes:list:{limit}:{offset}:{topic}:{format}"
         cached_list = await cache.get(cache_key)
         if cached_list:
             return MemeListResponse(**json.loads(cached_list))
-        
+
         try:
             # Query database for memes
             query = select(MemeDB).order_by(MemeDB.created_at.desc())
-            
+
             # Apply filters
             if topic:
                 query = query.where(MemeDB.topic.contains(topic))
             if format:
                 query = query.where(MemeDB.format == format)
-            
+
             memes = db.execute(query.offset(offset).limit(limit)).scalars().all()
-            
+
             # Get total count
             total = db.query(MemeDB).count()
-            
+
             # Convert to response models
             meme_responses = [
                 MemeResponse(
@@ -562,45 +542,42 @@ async def list_memes(
                     format=meme.format,
                     text=meme.text,
                     image_url=meme.image_url,
-                    created_at=meme.created_at.isoformat()
-                ) for meme in memes
+                    created_at=meme.created_at.isoformat(),
+                )
+                for meme in memes
             ]
-            
+
             response = MemeListResponse(
-                items=meme_responses,
-                total=total,
-                limit=limit,
-                offset=offset
+                items=meme_responses, total=total, limit=limit, offset=offset
             )
-            
+
             # Store in cache
             await cache.set(cache_key, json.dumps(response.model_dump()), ex=settings.cache_ttl)
-            
+
             return response
-            
+
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to list memes: {str(e)}"
+                detail=f"Failed to list memes: {str(e)}",
             )
+
 
 @router.get("/{meme_id}", response_model=MemeResponse)
 async def get_meme(
-    meme_id: str,
-    db: Session = Depends(get_db),
-    cache = Depends(get_cache)
+    meme_id: str, db: Session = Depends(get_db), cache=Depends(get_cache)
 ) -> MemeResponse:
     """
     Get a specific meme by ID.
-    
+
     Args:
         meme_id: The ID of the meme to retrieve
         db: Database session
         cache: Cache connection
-        
+
     Returns:
         The requested meme
-        
+
     Raises:
         HTTPException: If meme is not found
     """
@@ -609,17 +586,16 @@ async def get_meme(
     cached_meme = await cache.get(cache_key)
     if cached_meme:
         return MemeResponse(**json.loads(cached_meme))
-    
+
     try:
         # Query database for meme
         meme = db.query(MemeDB).filter(MemeDB.id == meme_id).first()
-        
+
         if not meme:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Meme not found: {meme_id}"
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Meme not found: {meme_id}"
             )
-        
+
         # Convert to response model
         response = MemeResponse(
             id=meme.id,
@@ -627,20 +603,20 @@ async def get_meme(
             format=meme.format,
             text=meme.text,
             image_url=meme.image_url,
-            created_at=meme.created_at.isoformat()
+            created_at=meme.created_at.isoformat(),
         )
-        
+
         # Store in cache
         await cache.set(cache_key, json.dumps(response.model_dump()), ex=settings.cache_ttl)
-        
+
         return response
-        
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get meme: {str(e)}"
+            detail=f"Failed to get meme: {str(e)}",
         )
 
 
@@ -653,22 +629,19 @@ async def get_generation_status(request_id: str):
         if not status:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Generation request not found: {request_id}"
+                detail=f"Generation request not found: {request_id}",
             )
         return status
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get generation status: {str(e)}"
+            detail=f"Failed to get generation status: {str(e)}",
         )
 
 
 @router.post("/{meme_id}/share")
 async def share_meme(
-    meme_id: str,
-    platform: str,
-    method: str = "api",
-    http_request: Request = None
+    meme_id: str, platform: str, method: str = "api", http_request: Request = None
 ):
     """Record a meme share event."""
     try:
@@ -678,15 +651,12 @@ async def share_meme(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to record share: {str(e)}"
+            detail=f"Failed to record share: {str(e)}",
         )
 
 
 @router.post("/{meme_id}/score")
-async def score_meme(
-    meme_id: str,
-    http_request: Request = None
-):
+async def score_meme(meme_id: str, http_request: Request = None):
     """Score an existing meme."""
     try:
         user_id = http_request.headers.get("x-user-id") if http_request else None
@@ -695,16 +665,13 @@ async def score_meme(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to score meme: {str(e)}"
+            detail=f"Failed to score meme: {str(e)}",
         )
 
 
 @router.delete("/{meme_id}")
 async def delete_meme(
-    meme_id: str,
-    reason: str,
-    soft_delete: bool = True,
-    http_request: Request = None
+    meme_id: str, reason: str, soft_delete: bool = True, http_request: Request = None
 ):
     """Delete a meme."""
     try:
@@ -714,7 +681,7 @@ async def delete_meme(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete meme: {str(e)}"
+            detail=f"Failed to delete meme: {str(e)}",
         )
 
 
@@ -726,13 +693,13 @@ async def get_daily_metrics(date: Optional[str] = None):
         if not metrics:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="No metrics found for the specified date"
+                detail="No metrics found for the specified date",
             )
         return metrics
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get metrics: {str(e)}"
+            detail=f"Failed to get metrics: {str(e)}",
         )
 
 
@@ -743,8 +710,7 @@ async def system_health():
         health = await health_check()
         if not health["overall"]:
             raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="System is not healthy"
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="System is not healthy"
             )
         return health
     except Exception as e:
@@ -755,5 +721,5 @@ async def system_health():
             "actor_system": False,
             "event_store": False,
             "event_bus": False,
-            "actors": {}
-        } 
+            "actors": {},
+        }

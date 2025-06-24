@@ -1,6 +1,7 @@
 """Tests for meme-specific exceptions."""
 
 from typing import Dict, Any, List, TYPE_CHECKING
+
 if TYPE_CHECKING:
     from _pytest.capture import CaptureFixture
     from _pytest.fixtures import FixtureRequest
@@ -35,7 +36,7 @@ def sample_route() -> Dict[str, Any]:
         "topic": "programming",
         "format": "drake",
         "style": "minimal",
-        "constraints": {"aspect_ratio": "1:1"}
+        "constraints": {"aspect_ratio": "1:1"},
     }
 
 
@@ -46,18 +47,15 @@ def sample_format_details() -> Dict[str, Any]:
         "name": "drake",
         "template_url": "https://example.com/drake.jpg",
         "text_positions": ["top", "bottom"],
-        "aspect_ratio": "1:1"
+        "aspect_ratio": "1:1",
     }
 
 
 def test_router_error() -> None:
     """Test RouterError initialization and details."""
     route_info = {"path": "meme/generate", "method": "POST"}
-    error = RouterError(
-        "Failed to route request",
-        route_info=route_info
-    )
-    
+    error = RouterError("Failed to route request", route_info=route_info)
+
     assert str(error) == "Failed to route request"
     assert error.code == ErrorCode.AGENT_EXECUTION_ERROR
     assert error.details["route_info"] == route_info
@@ -65,11 +63,8 @@ def test_router_error() -> None:
 
 def test_route_not_found_error(sample_route: Dict[str, Any]) -> None:
     """Test RouteNotFoundError initialization and details."""
-    error = RouteNotFoundError(
-        "No suitable route found for request",
-        request=sample_route
-    )
-    
+    error = RouteNotFoundError("No suitable route found for request", request=sample_route)
+
     assert str(error) == "No suitable route found for request"
     assert error.code == ErrorCode.AGENT_VALIDATION_ERROR
     assert error.details["route_info"]["request"] == sample_route
@@ -78,12 +73,8 @@ def test_route_not_found_error(sample_route: Dict[str, Any]) -> None:
 def test_invalid_route_error(sample_route: Dict[str, Any]) -> None:
     """Test InvalidRouteError initialization and details."""
     reason = "Unsupported meme format"
-    error = InvalidRouteError(
-        "Invalid route configuration",
-        route=sample_route,
-        reason=reason
-    )
-    
+    error = InvalidRouteError("Invalid route configuration", route=sample_route, reason=reason)
+
     assert str(error) == "Invalid route configuration"
     assert error.code == ErrorCode.AGENT_VALIDATION_ERROR
     assert error.details["route_info"]["route"] == sample_route
@@ -93,11 +84,8 @@ def test_invalid_route_error(sample_route: Dict[str, Any]) -> None:
 def test_meme_generation_error() -> None:
     """Test MemeGenerationError initialization and details."""
     generation_info = {"attempt": 1, "status": "failed"}
-    error = MemeGenerationError(
-        "Failed to generate meme",
-        generation_info=generation_info
-    )
-    
+    error = MemeGenerationError("Failed to generate meme", generation_info=generation_info)
+
     assert str(error) == "Failed to generate meme"
     assert error.code == ErrorCode.CONTENT_GENERATION_ERROR
     assert error.details["generation_info"] == generation_info
@@ -106,11 +94,9 @@ def test_meme_generation_error() -> None:
 def test_prompt_generation_error(sample_format_details: Dict[str, Any]) -> None:
     """Test PromptGenerationError initialization and details."""
     error = PromptGenerationError(
-        "Failed to generate prompt",
-        topic="programming",
-        format_details=sample_format_details
+        "Failed to generate prompt", topic="programming", format_details=sample_format_details
     )
-    
+
     assert str(error) == "Failed to generate prompt"
     assert error.code == ErrorCode.CONTENT_GENERATION_ERROR
     assert error.details["generation_info"]["topic"] == "programming"
@@ -120,11 +106,9 @@ def test_prompt_generation_error(sample_format_details: Dict[str, Any]) -> None:
 def test_image_generation_error() -> None:
     """Test ImageGenerationError initialization and details."""
     error = ImageGenerationError(
-        "Failed to generate image",
-        prompt="A programmer debugging code",
-        service="dall-e"
+        "Failed to generate image", prompt="A programmer debugging code", service="dall-e"
     )
-    
+
     assert str(error) == "Failed to generate image"
     assert error.code == ErrorCode.CONTENT_GENERATION_ERROR
     assert error.details["generation_info"]["prompt"] == "A programmer debugging code"
@@ -135,11 +119,9 @@ def test_trend_analysis_error() -> None:
     """Test TrendAnalysisError initialization and details."""
     sources = ["twitter", "reddit"]
     error = TrendAnalysisError(
-        "Failed to analyze trends",
-        sources=sources,
-        query="programming memes"
+        "Failed to analyze trends", sources=sources, query="programming memes"
     )
-    
+
     assert str(error) == "Failed to analyze trends"
     assert error.code == ErrorCode.AGENT_EXECUTION_ERROR
     assert error.details["sources"] == sources
@@ -150,11 +132,9 @@ def test_format_selection_error() -> None:
     """Test FormatSelectionError initialization and details."""
     constraints = {"style": "minimal", "aspect_ratio": "1:1"}
     error = FormatSelectionError(
-        "Failed to select format",
-        topic="programming",
-        constraints=constraints
+        "Failed to select format", topic="programming", constraints=constraints
     )
-    
+
     assert str(error) == "Failed to select format"
     assert error.code == ErrorCode.AGENT_EXECUTION_ERROR
     assert error.details["topic"] == "programming"
@@ -168,9 +148,9 @@ def test_content_verification_error() -> None:
         "Content verification failed",
         content_type="meme",
         verification_type="appropriateness",
-        issues=issues
+        issues=issues,
     )
-    
+
     assert str(error) == "Content verification failed"
     assert error.code == ErrorCode.CONTENT_VALIDATION_ERROR
     assert error.details["content_type"] == "meme"
@@ -181,12 +161,8 @@ def test_content_verification_error() -> None:
 def test_scoring_error() -> None:
     """Test ScoringError initialization and details."""
     criteria = ["humor", "relevance", "originality"]
-    error = ScoringError(
-        "Failed to score meme",
-        meme_id="123",
-        criteria=criteria
-    )
-    
+    error = ScoringError("Failed to score meme", meme_id="123", criteria=criteria)
+
     assert str(error) == "Failed to score meme"
     assert error.code == ErrorCode.AGENT_EXECUTION_ERROR
     assert error.details["meme_id"] == "123"
@@ -214,4 +190,4 @@ async def test_invalid_format_error():
     """Test InvalidMemeFormatError handling."""
     with pytest.raises(InvalidMemeFormatError) as exc_info:
         raise InvalidMemeFormatError("Invalid meme format")
-    assert str(exc_info.value) == "Invalid meme format" 
+    assert str(exc_info.value) == "Invalid meme format"
