@@ -221,10 +221,10 @@ async def test_check_health_system_warning(
 
     assert is_healthy is False
     assert details["status"] == "unhealthy"
-    assert details["components"]["system"]["status"] == "warning"
-    assert details["components"]["system"]["cpu"]["usage_percent"] == 95.0
-    assert details["components"]["system"]["memory"]["used_percent"] == 95.0
-    assert details["components"]["system"]["disk"]["used_percent"] == 95.0
+    assert details["system"]["status"] == "warning"
+    assert "95" in details["system"]["cpu_usage"]
+    assert "95" in details["system"]["memory_usage"]
+    assert "95" in details["system"]["disk_usage"]
 
 
 @pytest.mark.asyncio
