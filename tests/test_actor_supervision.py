@@ -437,6 +437,10 @@ class TestSupervisionIntegration:
         child_sup1 = root_supervisor.children["child_sup1"]
         child_sup2 = root_supervisor.children["child_sup2"]
 
+        # Set up the child supervisors with the mock system
+        child_sup1.actor._system = mock_system
+        child_sup2.actor._system = mock_system
+
         actor1_ref = await child_sup1.actor.spawn_child(TestActor, "actor1")
         actor2_ref = await child_sup2.actor.spawn_child(TestActor, "actor2")
 
