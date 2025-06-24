@@ -10,10 +10,10 @@ import weakref
 from unittest.mock import Mock, AsyncMock, patch
 from typing import Dict, Any, List
 
-from src.dspy_meme_gen.actors.core import Actor, Message
-from src.dspy_meme_gen.actors.supervisor import Supervisor, RestartStrategy, RestartPolicy
-from src.dspy_meme_gen.actors.adaptive_concurrency import ConcurrencyLimitedActor
-from src.dspy_meme_gen.actors.work_stealing_pool import WorkStealingPool, WorkStealingWorker
+from dspy_meme_gen.actors.core import Actor, Message
+from dspy_meme_gen.actors.supervisor import Supervisor, RestartStrategy, RestartPolicy
+from dspy_meme_gen.actors.adaptive_concurrency import ConcurrencyLimitedActor
+from dspy_meme_gen.actors.work_stealing_pool import WorkStealingPool, WorkStealingWorker
 
 
 @pytest.fixture

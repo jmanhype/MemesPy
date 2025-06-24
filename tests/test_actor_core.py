@@ -11,7 +11,7 @@ from unittest.mock import Mock, AsyncMock, patch
 from typing import Dict, Any, List
 from dataclasses import dataclass
 
-from src.dspy_meme_gen.actors.core import (
+from dspy_meme_gen.actors.core import (
     Actor,
     Message,
     Request,
@@ -20,7 +20,7 @@ from src.dspy_meme_gen.actors.core import (
     ActorRef,
     ActorSystem,
 )
-from src.dspy_meme_gen.actors.mailbox import ActorMailbox, OverflowStrategy
+from dspy_meme_gen.actors.mailbox import ActorMailbox, OverflowStrategy
 
 
 @dataclass
@@ -115,7 +115,7 @@ class TestActorBasics:
         actor = TestActor("test_actor")
 
         assert actor.name == "test_actor"
-        assert actor.is_running is False
+        assert actor.running is False
         assert actor.mailbox is not None
         assert actor.logger is not None
 
@@ -125,12 +125,12 @@ class TestActorBasics:
 
         # Start actor
         await actor.start()
-        assert actor.is_running is True
+        assert actor.running is True
         assert actor.start_called is True
 
         # Stop actor
         await actor.stop()
-        assert actor.is_running is False
+        assert actor.running is False
         assert actor.stop_called is True
 
     async def test_message_handling(self):
