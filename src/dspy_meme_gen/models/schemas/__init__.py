@@ -1,1 +1,0 @@
-"""Pydantic schemas for DSPy Meme Generator.""" 

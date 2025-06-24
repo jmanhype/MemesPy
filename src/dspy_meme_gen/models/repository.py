@@ -1,4 +1,5 @@
 """Repository pattern implementation for database operations."""
+
 from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
 from uuid import UUID
 
@@ -23,9 +24,10 @@ from dspy_meme_gen.models.query_optimizer import QueryOptimizer
 
 ModelType = TypeVar("ModelType", bound=Base)
 
+
 class BaseRepository(Generic[ModelType]):
     """Base repository class with common CRUD operations.
-    
+
     Args:
         model: SQLAlchemy model class
     """
@@ -36,14 +38,14 @@ class BaseRepository(Generic[ModelType]):
 
     async def create(self, db: AsyncSession, data: Dict[str, Any]) -> ModelType:
         """Create a new entity.
-        
+
         Args:
             db: Database session
             data: Entity data
-            
+
         Returns:
             ModelType: Created entity
-            
+
         Raises:
             InvalidDataError: If data is invalid
             DatabaseError: If database operation fails
@@ -70,7 +72,7 @@ class BaseRepository(Generic[ModelType]):
         cache_ttl: Optional[int] = None,
     ) -> Optional[ModelType]:
         """Get entity by ID with optimization options.
-        
+
         Args:
             db: Database session
             id: Entity ID
@@ -78,16 +80,16 @@ class BaseRepository(Generic[ModelType]):
             join_loads: Optional list of relationships to join load
             cache_key: Optional cache key
             cache_ttl: Optional cache TTL in seconds
-            
+
         Returns:
             Optional[ModelType]: Found entity or None
-            
+
         Raises:
             DatabaseError: If database operation fails
         """
         try:
             query = select(self.model).filter(self.model.id == id)
-            
+
             # Apply optimizations
             query = self.query_optimizer.optimize_query(
                 query,
@@ -95,7 +97,7 @@ class BaseRepository(Generic[ModelType]):
                 select_fields=select_fields,
                 join_loads=join_loads,
             )
-            
+
             # Execute with caching
             result = await self.query_optimizer.execute_optimized(
                 db,
@@ -103,21 +105,21 @@ class BaseRepository(Generic[ModelType]):
                 cache_key=cache_key,
                 cache_ttl=cache_ttl,
             )
-            
+
             return result[0] if result else None
         except Exception as e:
             raise DatabaseError(f"Failed to get {self.model.__name__}: {str(e)}")
 
     async def get_or_404(self, db: AsyncSession, id: Union[int, str]) -> ModelType:
         """Get entity by ID or raise 404.
-        
+
         Args:
             db: Database session
             id: Entity ID
-            
+
         Returns:
             ModelType: Found entity
-            
+
         Raises:
             EntityNotFoundError: If entity not found
             DatabaseError: If database operation fails
@@ -138,10 +140,10 @@ class BaseRepository(Generic[ModelType]):
         select_loads: Optional[List[str]] = None,
         cache_key: Optional[str] = None,
         cache_ttl: Optional[int] = None,
-        **filters: Any
+        **filters: Any,
     ) -> List[ModelType]:
         """List entities with optimization options.
-        
+
         Args:
             db: Database session
             skip: Number of records to skip
@@ -152,25 +154,25 @@ class BaseRepository(Generic[ModelType]):
             cache_key: Optional cache key
             cache_ttl: Optional cache TTL in seconds
             **filters: Filter conditions
-            
+
         Returns:
             List[ModelType]: List of entities
-            
+
         Raises:
             DatabaseError: If database operation fails
         """
         try:
             # Build base query
             query = select(self.model)
-            
+
             # Apply filters
             for field, value in filters.items():
                 if hasattr(self.model, field):
                     query = query.filter(getattr(self.model, field) == value)
-            
+
             # Apply pagination
             query = query.offset(skip).limit(limit)
-            
+
             # Apply optimizations
             query = self.query_optimizer.optimize_query(
                 query,
@@ -179,7 +181,7 @@ class BaseRepository(Generic[ModelType]):
                 join_loads=join_loads,
                 select_loads=select_loads,
             )
-            
+
             # Execute with caching
             return await self.query_optimizer.execute_optimized(
                 db,
@@ -191,21 +193,18 @@ class BaseRepository(Generic[ModelType]):
             raise DatabaseError(f"Failed to list {self.model.__name__}: {str(e)}")
 
     async def update(
-        self,
-        db: AsyncSession,
-        id: Union[int, str],
-        data: Dict[str, Any]
+        self, db: AsyncSession, id: Union[int, str], data: Dict[str, Any]
     ) -> ModelType:
         """Update entity by ID.
-        
+
         Args:
             db: Database session
             id: Entity ID
             data: Update data
-            
+
         Returns:
             ModelType: Updated entity
-            
+
         Raises:
             EntityNotFoundError: If entity not found
             InvalidDataError: If data is invalid
@@ -228,11 +227,11 @@ class BaseRepository(Generic[ModelType]):
 
     async def delete(self, db: AsyncSession, id: Union[int, str]) -> None:
         """Delete entity by ID.
-        
+
         Args:
             db: Database session
             id: Entity ID
-            
+
         Raises:
             EntityNotFoundError: If entity not found
             DatabaseError: If database operation fails
@@ -255,38 +254,31 @@ class MemeTemplateRepository(BaseRepository[MemeTemplate]):
 
     async def get_by_name(self, db: AsyncSession, name: str) -> Optional[MemeTemplate]:
         """Get template by name.
-        
+
         Args:
             db: Database session
             name: Template name
-            
+
         Returns:
             Optional[MemeTemplate]: Found template or None
         """
         try:
-            result = await db.execute(
-                select(self.model).filter(self.model.name == name)
-            )
+            result = await db.execute(select(self.model).filter(self.model.name == name))
             return result.scalar_one_or_none()
         except Exception as e:
             raise DatabaseError(f"Failed to get template by name: {str(e)}")
 
     async def list_by_format_type(
-        self,
-        db: AsyncSession,
-        format_type: str,
-        *,
-        skip: int = 0,
-        limit: int = 100
+        self, db: AsyncSession, format_type: str, *, skip: int = 0, limit: int = 100
     ) -> List[MemeTemplate]:
         """List templates by format type.
-        
+
         Args:
             db: Database session
             format_type: Format type to filter by
             skip: Number of records to skip
             limit: Maximum number of records to return
-            
+
         Returns:
             List[MemeTemplate]: List of templates
         """
@@ -310,21 +302,16 @@ class GeneratedMemeRepository(BaseRepository[GeneratedMeme]):
         super().__init__(GeneratedMeme)
 
     async def list_by_template(
-        self,
-        db: AsyncSession,
-        template_id: int,
-        *,
-        skip: int = 0,
-        limit: int = 100
+        self, db: AsyncSession, template_id: int, *, skip: int = 0, limit: int = 100
     ) -> List[GeneratedMeme]:
         """List memes by template.
-        
+
         Args:
             db: Database session
             template_id: Template ID to filter by
             skip: Number of records to skip
             limit: Maximum number of records to return
-            
+
         Returns:
             List[GeneratedMeme]: List of memes
         """
@@ -348,31 +335,21 @@ class TrendingTopicRepository(BaseRepository[TrendingTopic]):
         super().__init__(TrendingTopic)
 
     async def list_by_source(
-        self,
-        db: AsyncSession,
-        source: str,
-        *,
-        skip: int = 0,
-        limit: int = 100
+        self, db: AsyncSession, source: str, *, skip: int = 0, limit: int = 100
     ) -> List[TrendingTopic]:
         """List topics by source.
-        
+
         Args:
             db: Database session
             source: Source to filter by
             skip: Number of records to skip
             limit: Maximum number of records to return
-            
+
         Returns:
             List[TrendingTopic]: List of topics
         """
         try:
-            query = (
-                select(self.model)
-                .filter(self.model.source == source)
-                .offset(skip)
-                .limit(limit)
-            )
+            query = select(self.model).filter(self.model.source == source).offset(skip).limit(limit)
             result = await db.execute(query)
             return result.scalars().all()
         except Exception as e:
@@ -386,30 +363,22 @@ class UserFeedbackRepository(BaseRepository[UserFeedback]):
         super().__init__(UserFeedback)
 
     async def list_by_meme(
-        self,
-        db: AsyncSession,
-        meme_id: int,
-        *,
-        skip: int = 0,
-        limit: int = 100
+        self, db: AsyncSession, meme_id: int, *, skip: int = 0, limit: int = 100
     ) -> List[UserFeedback]:
         """List feedback by meme.
-        
+
         Args:
             db: Database session
             meme_id: Meme ID to filter by
             skip: Number of records to skip
             limit: Maximum number of records to return
-            
+
         Returns:
             List[UserFeedback]: List of feedback
         """
         try:
             query = (
-                select(self.model)
-                .filter(self.model.meme_id == meme_id)
-                .offset(skip)
-                .limit(limit)
+                select(self.model).filter(self.model.meme_id == meme_id).offset(skip).limit(limit)
             )
             result = await db.execute(query)
             return result.scalars().all()
@@ -421,4 +390,4 @@ class UserFeedbackRepository(BaseRepository[UserFeedback]):
 meme_template_repo = MemeTemplateRepository()
 generated_meme_repo = GeneratedMemeRepository()
 trending_topic_repo = TrendingTopicRepository()
-user_feedback_repo = UserFeedbackRepository() 
+user_feedback_repo = UserFeedbackRepository()

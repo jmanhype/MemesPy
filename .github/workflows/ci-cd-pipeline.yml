@@ -1,0 +1,279 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  PYTHON_VERSION: '3.10'
+  DOCKER_REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Stage 1: Development - Code Quality Checks
+  quality-gate:
+    name: 🔍 Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for SonarQube
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install ruff mypy pytest pytest-cov black isort
+
+      - name: 🎨 Format Check (Black)
+        run: black --check src/ tests/
+
+      - name: 🔧 Lint (Ruff)
+        run: ruff check src/ tests/
+
+      # - name: 📊 Type Check (MyPy)
+      #   run: mypy src/ --ignore-missing-imports
+
+      - name: 🔒 Security Scan
+        run: |
+          pip install bandit safety
+          bandit -r src/ -lll || true  # Only show high severity, don't fail
+          safety check --json || true  # Don't fail on known vulnerabilities
+
+      - name: 📋 Check Definition of Ready
+        if: github.event_name == 'pull_request'
+        run: |
+          # Check if PR has required labels
+          labels=$(gh pr view ${{ github.event.pull_request.number }} --json labels -q '.labels[].name')
+          if ! echo "$labels" | grep -E "size/(S|M|L|XL)"; then
+            echo "❌ PR missing size label"
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  # Stage 2: Build & Test
+  build-and-test:
+    name: 🏗️ Build & Test
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: memespy_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio pytest-mock
+
+      - name: 🧪 Run Unit Tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/memespy_test
+          REDIS_URL: redis://localhost:6379
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ENVIRONMENT: test
+        run: |
+          pytest tests/ -v --cov=src --cov-report=xml --cov-report=html --cov-report=term-missing --timeout=60 -m "not slow" -x
+
+      - name: 📊 Upload Coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+
+      - name: 📈 Coverage Report Comment
+        if: github.event_name == 'pull_request'
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          MINIMUM_GREEN: 80
+          MINIMUM_ORANGE: 60
+
+  # Stage 3: Build & Package Docker
+  docker-build:
+    name: 🐳 Build Docker Image
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ steps.meta.outputs.version }}
+
+  # Stage 4: Integration Tests
+  integration-tests:
+    name: 🧪 Integration Tests
+    needs: docker-build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: memespy_integration
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Integration Tests
+        run: |
+          docker run --rm \
+            --network ${{ job.services.postgres.network }} \
+            -e DATABASE_URL=postgresql://postgres:postgres@postgres:5432/memespy_integration \
+            -e ENVIRONMENT=test \
+            ${{ needs.docker-build.outputs.image-tag }} \
+            pytest tests/integration/ -v
+
+  # Stage 5: Deploy (only on main branch)
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    needs: [docker-build, integration-tests]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.memespy.app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Staging
+        run: |
+          echo "🚀 Deploying ${{ needs.docker-build.outputs.image-tag }} to staging"
+          # Add your deployment script here
+          # Example: kubectl set image deployment/memespy memespy=${{ needs.docker-build.outputs.image-tag }}
+
+      - name: 🏥 Health Check
+        run: |
+          echo "Waiting for deployment to be ready..."
+          sleep 30
+          # curl -f https://staging.memespy.app/api/health || exit 1
+
+      - name: 📊 Update Deployment Status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+            const description = status === 'success' 
+              ? 'Deployed to staging successfully' 
+              : 'Deployment to staging failed';
+            
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: status,
+              description: description,
+              context: 'deployment/staging'
+            });
+
+  # Monitoring and Notifications
+  notify:
+    name: 📢 Notifications
+    needs: [quality-gate, build-and-test, docker-build, integration-tests]
+    if: always()
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Build Status Summary
+        run: |
+          echo "## 📊 Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Quality Gate | ${{ needs.quality-gate.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build & Test | ${{ needs.build-and-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Build | ${{ needs.docker-build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY

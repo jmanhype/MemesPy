@@ -1,4 +1,5 @@
 """Tests for database exceptions."""
+
 from typing import TYPE_CHECKING
 
 import pytest
@@ -202,4 +203,4 @@ def test_exception_inheritance():
 
     for error in exceptions:
         assert isinstance(error, DatabaseError)
-        assert isinstance(error, Exception) 
+        assert isinstance(error, Exception)

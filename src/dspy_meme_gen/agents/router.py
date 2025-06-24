@@ -1,4 +1,5 @@
 """Router Agent for analyzing and routing meme generation requests."""
+
 from typing import Dict, Any
 import dspy
 from loguru import logger
@@ -6,6 +7,7 @@ from loguru import logger
 
 class RouteResult(Dict[str, Any]):
     """Type definition for router results."""
+
     topic: str
     format: str
     verification_needs: Dict[str, bool]
@@ -39,20 +41,20 @@ class RouterAgent(dspy.Module):
         """
         try:
             logger.info(f"Processing routing request: {user_request}")
-            
+
             route_result = self.router(request=user_request)
-            
+
             result: RouteResult = {
                 "topic": route_result.topic,
                 "format": route_result.format,
                 "verification_needs": route_result.verification_needs,
                 "constraints": route_result.constraints,
-                "generation_approach": route_result.generation_approach
+                "generation_approach": route_result.generation_approach,
             }
-            
+
             logger.debug(f"Route result: {result}")
             return result
-            
+
         except Exception as e:
             logger.error(f"Error in router agent: {str(e)}")
-            raise RuntimeError(f"Failed to process routing request: {str(e)}") 
+            raise RuntimeError(f"Failed to process routing request: {str(e)}")

@@ -1,4 +1,5 @@
 """Database connection management."""
+
 from contextlib import asynccontextmanager, contextmanager
 from typing import AsyncGenerator, Generator, Optional
 
@@ -13,15 +14,16 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import QueuePool
 
-from ..config.config import get_settings
+from ..config.config import settings
 from ..exceptions.database import DatabaseConnectionError
 from ..models.base import Base
 
-settings = get_settings()
+# settings already imported above
+
 
 class DatabaseConnectionManager:
     """Database connection manager.
-    
+
     Handles connection pooling, lifecycle, and health checks.
     """
 
@@ -35,54 +37,78 @@ class DatabaseConnectionManager:
     @property
     def sync_engine(self) -> Engine:
         """Get synchronous engine, creating if needed.
-        
+
         Returns:
             Engine: SQLAlchemy engine
         """
         if not self._sync_engine:
+            sync_url = str(settings.database_url)
+            # Convert async SQLite URL to sync
+            if sync_url.startswith("sqlite+aiosqlite:///"):
+                sync_url = sync_url.replace("sqlite+aiosqlite:///", "sqlite:///")
+
+            # Don't use QueuePool for SQLite
+            pool_kwargs = {}
+            if not sync_url.startswith("sqlite"):
+                pool_kwargs = {
+                    "poolclass": QueuePool,
+                    "pool_size": 10,
+                    "max_overflow": 20,
+                    "pool_timeout": 30,
+                    "pool_recycle": 3600,
+                }
+
             self._sync_engine = create_engine(
-                str(settings.database.DATABASE_URL),
-                poolclass=QueuePool,
-                pool_size=settings.database.DATABASE_POOL_SIZE,
-                max_overflow=settings.database.DATABASE_MAX_OVERFLOW,
-                pool_timeout=settings.database.DATABASE_POOL_TIMEOUT,
-                pool_recycle=settings.database.DATABASE_POOL_RECYCLE,
+                sync_url,
                 pool_pre_ping=True,  # Enable connection health checks
-                echo=settings.database.DATABASE_ECHO,
+                echo=False,  # Default echo
+                **pool_kwargs,
             )
-            
+
             # Set up engine event listeners
             event.listen(self._sync_engine, "connect", self._on_connect)
             event.listen(self._sync_engine, "checkout", self._on_checkout)
-            
+
         return self._sync_engine
 
     @property
     def async_engine(self) -> AsyncEngine:
         """Get asynchronous engine, creating if needed.
-        
+
         Returns:
             AsyncEngine: SQLAlchemy async engine
         """
         if not self._async_engine:
+            async_url = str(settings.database_url)
+            # Convert sync URL to async if needed
+            if async_url.startswith("postgresql://"):
+                async_url = async_url.replace("postgresql://", "postgresql+asyncpg://")
+            elif async_url.startswith("sqlite:///"):
+                async_url = async_url.replace("sqlite:///", "sqlite+aiosqlite:///")
+            # If already async, keep as is
+
+            # Don't use pool settings for SQLite
+            pool_kwargs = {}
+            if not async_url.startswith("sqlite"):
+                pool_kwargs = {
+                    "pool_size": 10,
+                    "max_overflow": 20,
+                    "pool_timeout": 30,
+                    "pool_recycle": 3600,
+                }
+
             self._async_engine = create_async_engine(
-                str(settings.database.DATABASE_URL).replace(
-                    "postgresql://",
-                    "postgresql+asyncpg://"
-                ),
-                pool_size=settings.database.DATABASE_POOL_SIZE,
-                max_overflow=settings.database.DATABASE_MAX_OVERFLOW,
-                pool_timeout=settings.database.DATABASE_POOL_TIMEOUT,
-                pool_recycle=settings.database.DATABASE_POOL_RECYCLE,
+                async_url,
                 pool_pre_ping=True,  # Enable connection health checks
-                echo=settings.database.DATABASE_ECHO,
+                echo=False,  # Default echo
+                **pool_kwargs,
             )
         return self._async_engine
 
     @property
     def sync_session_factory(self) -> sessionmaker:
         """Get synchronous session factory, creating if needed.
-        
+
         Returns:
             sessionmaker: SQLAlchemy session factory
         """
@@ -97,7 +123,7 @@ class DatabaseConnectionManager:
     @property
     def async_session_factory(self) -> async_sessionmaker:
         """Get asynchronous session factory, creating if needed.
-        
+
         Returns:
             async_sessionmaker: SQLAlchemy async session factory
         """
@@ -112,24 +138,29 @@ class DatabaseConnectionManager:
 
     def _on_connect(self, dbapi_connection, connection_record):
         """Handle new connections.
-        
+
         Args:
             dbapi_connection: DBAPI connection
             connection_record: Connection pool record
         """
-        # Set session parameters
+        # Set session parameters based on database type
         cursor = dbapi_connection.cursor()
-        cursor.execute("SET timezone TO 'UTC'")
+        try:
+            # Try PostgreSQL timezone setting
+            cursor.execute("SET timezone TO 'UTC'")
+        except Exception:
+            # SQLite doesn't support SET timezone, ignore
+            pass
         cursor.close()
 
     def _on_checkout(self, dbapi_connection, connection_record, connection_proxy):
         """Handle connection checkout from pool.
-        
+
         Args:
             dbapi_connection: DBAPI connection
             connection_record: Connection pool record
             connection_proxy: Connection proxy
-            
+
         Raises:
             DatabaseConnectionError: If connection is invalid
         """
@@ -143,10 +174,10 @@ class DatabaseConnectionManager:
     @contextmanager
     def get_session(self) -> Generator[Session, None, None]:
         """Get a synchronous database session.
-        
+
         Yields:
             Session: Database session
-            
+
         Example:
             ```python
             with db_manager.get_session() as session:
@@ -162,10 +193,10 @@ class DatabaseConnectionManager:
     @asynccontextmanager
     async def get_async_session(self) -> AsyncGenerator[AsyncSession, None]:
         """Get an asynchronous database session.
-        
+
         Yields:
             AsyncSession: Database session
-            
+
         Example:
             ```python
             async with db_manager.get_async_session() as session:
@@ -186,10 +217,10 @@ class DatabaseConnectionManager:
 
     async def check_connection(self) -> bool:
         """Check database connection health.
-        
+
         Returns:
             bool: True if connection is healthy
-            
+
         Raises:
             DatabaseConnectionError: If connection check fails
         """
@@ -200,5 +231,6 @@ class DatabaseConnectionManager:
         except Exception as e:
             raise DatabaseConnectionError(f"Database connection check failed: {str(e)}")
 
+
 # Global connection manager instance
-db_manager = DatabaseConnectionManager() 
+db_manager = DatabaseConnectionManager()

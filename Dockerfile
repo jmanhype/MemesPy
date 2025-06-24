@@ -1,51 +1,76 @@
-# Use Python 3.10 slim image as base
+# Build stage
+FROM python:3.10-slim as builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+# Production stage
 FROM python:3.10-slim
+
+# Add labels for metadata
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION
+LABEL org.opencontainers.image.created=$BUILD_DATE \
+      org.opencontainers.image.revision=$VCS_REF \
+      org.opencontainers.image.version=$VERSION \
+      org.opencontainers.image.title="MemesPy" \
+      org.opencontainers.image.description="AI-powered meme generation API" \
+      org.opencontainers.image.source="https://github.com/jmanhype/MemesPy"
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=off \
-    PIP_DISABLE_PIP_VERSION_CHECK=on \
-    PYSETUP_PATH="/opt/pysetup"
+    PIP_DISABLE_PIP_VERSION_CHECK=on
 
-# Set working directory
-WORKDIR $PYSETUP_PATH
+# Create non-root user
+RUN useradd -m -u 1000 memespy
 
-# Install system dependencies
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        build-essential \
-        netcat-traditional \
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libpq5 \
+    curl \
+    netcat-traditional \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy project files
-COPY requirements.txt ./
-COPY src/ ./src/
-COPY alembic.ini ./
-COPY alembic/ ./alembic/
+# Copy installed packages from builder
+COPY --from=builder /root/.local /home/memespy/.local
 
-# Install dependencies
-RUN pip install -r requirements.txt
-
-# Copy the rest of the application
-COPY . .
-
-# Install the application
-RUN pip install -e .
+# Copy application code
+COPY --chown=memespy:memespy . .
 
 # Create necessary directories
 RUN mkdir -p /var/log/dspy_meme_gen \
-    && mkdir -p /var/lib/dspy_meme_gen/meme_storage
+    && mkdir -p /var/lib/dspy_meme_gen/meme_storage \
+    && mkdir -p static/images/memes \
+    && chown -R memespy:memespy /var/log/dspy_meme_gen \
+    && chown -R memespy:memespy /var/lib/dspy_meme_gen \
+    && chown -R memespy:memespy static
 
-# Set up entrypoint script
-COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Switch to non-root user
+USER memespy
+
+# Add user's local bin to PATH
+ENV PATH=/home/memespy/.local/bin:$PATH
 
 # Expose port
-EXPOSE 8000
+EXPOSE 8081
 
-# Set entrypoint
-ENTRYPOINT ["/entrypoint.sh"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8081/api/health || exit 1
 
-# Default command
-CMD ["uvicorn", "dspy_meme_gen.api.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+# Run the application
+CMD ["python", "-m", "uvicorn", "src.dspy_meme_gen.api.main:app", "--host", "0.0.0.0", "--port", "8081"] 

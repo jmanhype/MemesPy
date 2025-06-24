@@ -1,4 +1,5 @@
 """Database-related exceptions."""
+
 from typing import Any, Dict, Optional
 
 
@@ -7,7 +8,7 @@ class DatabaseError(Exception):
 
     def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
         """Initialize the exception.
-        
+
         Args:
             message: The error message.
             details: Optional dictionary containing additional error details.
@@ -22,7 +23,7 @@ class EntityNotFoundError(DatabaseError):
 
     def __init__(self, entity_type: str, entity_id: Any) -> None:
         """Initialize the exception.
-        
+
         Args:
             entity_type: The type of entity that was not found (e.g., "MemeTemplate").
             entity_id: The ID of the entity that was not found.
@@ -36,7 +37,7 @@ class InvalidDataError(DatabaseError):
 
     def __init__(self, message: str, validation_errors: Optional[Dict[str, Any]] = None) -> None:
         """Initialize the exception.
-        
+
         Args:
             message: The error message.
             validation_errors: Optional dictionary containing validation error details.
@@ -49,7 +50,7 @@ class DatabaseConnectionError(DatabaseError):
 
     def __init__(self, message: str, connection_details: Optional[Dict[str, Any]] = None) -> None:
         """Initialize the exception.
-        
+
         Args:
             message: The error message.
             connection_details: Optional dictionary containing connection error details.
@@ -62,7 +63,7 @@ class TransactionError(DatabaseError):
 
     def __init__(self, message: str, transaction_details: Optional[Dict[str, Any]] = None) -> None:
         """Initialize the exception.
-        
+
         Args:
             message: The error message.
             transaction_details: Optional dictionary containing transaction error details.
@@ -75,7 +76,7 @@ class UniqueConstraintError(DatabaseError):
 
     def __init__(self, message: str, constraint_details: Optional[Dict[str, Any]] = None) -> None:
         """Initialize the exception.
-        
+
         Args:
             message: The error message.
             constraint_details: Optional dictionary containing constraint violation details.
@@ -88,7 +89,7 @@ class ForeignKeyError(DatabaseError):
 
     def __init__(self, message: str, foreign_key_details: Optional[Dict[str, Any]] = None) -> None:
         """Initialize the exception.
-        
+
         Args:
             message: The error message.
             foreign_key_details: Optional dictionary containing foreign key violation details.
@@ -101,7 +102,7 @@ class CheckConstraintError(DatabaseError):
 
     def __init__(self, message: str, constraint_details: Optional[Dict[str, Any]] = None) -> None:
         """Initialize the exception.
-        
+
         Args:
             message: The error message.
             constraint_details: Optional dictionary containing check constraint violation details.
@@ -114,9 +115,9 @@ class DataIntegrityError(DatabaseError):
 
     def __init__(self, message: str, integrity_details: Optional[Dict[str, Any]] = None) -> None:
         """Initialize the exception.
-        
+
         Args:
             message: The error message.
             integrity_details: Optional dictionary containing data integrity violation details.
         """
-        super().__init__(message, {"integrity_details": integrity_details or {}}) 
+        super().__init__(message, {"integrity_details": integrity_details or {}})

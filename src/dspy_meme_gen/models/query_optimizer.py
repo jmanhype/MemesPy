@@ -1,4 +1,5 @@
 """Query optimization utilities for database operations."""
+
 from typing import Any, List, Optional, Tuple, Type, TypeVar
 
 from sqlalchemy import Select, func, select
@@ -18,13 +19,14 @@ from dspy_meme_gen.cache.cache_manager import cache_manager
 
 ModelType = TypeVar("ModelType", bound=Base)
 
+
 class QueryOptimizer:
     """Query optimization utilities for database operations."""
 
     @staticmethod
     def optimize_query(query: Select, model: Type[ModelType], **options: Any) -> Select:
         """Optimize a query based on provided options.
-        
+
         Args:
             query: Base query to optimize
             model: Model class
@@ -34,7 +36,7 @@ class QueryOptimizer:
                 - select_loads: List of relationships to select load
                 - count_only: Return count only
                 - group_by: Fields to group by
-                
+
         Returns:
             Select: Optimized query
         """
@@ -71,13 +73,13 @@ class QueryOptimizer:
         cache_ttl: Optional[int] = None,
     ) -> Any:
         """Execute an optimized query with optional caching.
-        
+
         Args:
             db: Database session
             query: Query to execute
             cache_key: Optional cache key
             cache_ttl: Optional cache TTL in seconds
-            
+
         Returns:
             Any: Query results
         """
@@ -104,12 +106,12 @@ class QueryOptimizer:
         per_page: int = 20,
     ) -> Tuple[Select, int]:
         """Add pagination to a query.
-        
+
         Args:
             query: Query to paginate
             page: Page number (1-based)
             per_page: Items per page
-            
+
         Returns:
             Tuple[Select, int]: Paginated query and total count
         """
@@ -122,4 +124,4 @@ class QueryOptimizer:
         # Add pagination
         query = query.offset(offset).limit(per_page)
 
-        return query, count_query 
+        return query, count_query

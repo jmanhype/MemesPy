@@ -1,4 +1,5 @@
 """Tests for the prompt generation agent."""
+
 from typing import TYPE_CHECKING, Dict, Any
 
 import pytest
@@ -23,8 +24,8 @@ def mock_format_details() -> Dict[str, Any]:
             "aspect_ratio": "1:1",
             "style": "cartoon",
             "layout": "vertical",
-            "text_alignment": "left"
-        }
+            "text_alignment": "left",
+        },
     }
 
 
@@ -37,7 +38,7 @@ def mock_style_preferences() -> Dict[str, Any]:
         "lighting": "dramatic",
         "font": "Comic Sans",
         "text_color": "black",
-        "text_stroke": "white"
+        "text_stroke": "white",
     }
 
 
@@ -46,7 +47,7 @@ def mock_caption_response(mocker: "MockerFixture") -> Dict[str, Any]:
     """Mock the caption generator response."""
     return mocker.MagicMock(
         caption="Old methods | New AI methods",
-        reasoning="Comparing traditional approach with modern AI"
+        reasoning="Comparing traditional approach with modern AI",
     )
 
 
@@ -62,22 +63,23 @@ def mock_image_prompt_response(mocker: "MockerFixture") -> Dict[str, Any]:
 def prompt_generator(
     mocker: "MockerFixture",
     mock_caption_response: Dict[str, Any],
-    mock_image_prompt_response: Dict[str, Any]
+    mock_image_prompt_response: Dict[str, Any],
 ) -> PromptGenerationAgent:
     """Create a prompt generation agent with mocked components."""
     agent = PromptGenerationAgent()
     mocker.patch.object(agent.caption_generator, "__call__", return_value=mock_caption_response)
-    mocker.patch.object(agent.image_prompt_generator, "__call__", return_value=mock_image_prompt_response)
+    mocker.patch.object(
+        agent.image_prompt_generator, "__call__", return_value=mock_image_prompt_response
+    )
     return agent
 
 
 def test_prompt_generation_basic(
-    prompt_generator: PromptGenerationAgent,
-    mock_format_details: Dict[str, Any]
+    prompt_generator: PromptGenerationAgent, mock_format_details: Dict[str, Any]
 ) -> None:
     """Test basic prompt generation without constraints or preferences."""
     result = prompt_generator.forward("AI vs traditional methods", mock_format_details)
-    
+
     assert isinstance(result, PromptGenerationResult)
     assert result.caption == "Old methods | New AI methods"
     assert result.image_prompt == "Drake meme format showing dismissal and approval gestures"
@@ -88,22 +90,15 @@ def test_prompt_generation_basic(
 
 
 def test_prompt_generation_with_constraints(
-    prompt_generator: PromptGenerationAgent,
-    mock_format_details: Dict[str, Any]
+    prompt_generator: PromptGenerationAgent, mock_format_details: Dict[str, Any]
 ) -> None:
     """Test prompt generation with constraints."""
-    constraints = {
-        "max_length": 20,
-        "text_placement": "top",
-        "tone": "formal"
-    }
-    
+    constraints = {"max_length": 20, "text_placement": "top", "tone": "formal"}
+
     result = prompt_generator.forward(
-        "AI vs traditional methods",
-        mock_format_details,
-        constraints=constraints
+        "AI vs traditional methods", mock_format_details, constraints=constraints
     )
-    
+
     assert len(result.caption) <= 20
     assert "top" in result.text_positions
     assert result.text_positions["top"] != ""
@@ -112,15 +107,13 @@ def test_prompt_generation_with_constraints(
 def test_prompt_generation_with_style_preferences(
     prompt_generator: PromptGenerationAgent,
     mock_format_details: Dict[str, Any],
-    mock_style_preferences: Dict[str, Any]
+    mock_style_preferences: Dict[str, Any],
 ) -> None:
     """Test prompt generation with style preferences."""
     result = prompt_generator.forward(
-        "AI vs traditional methods",
-        mock_format_details,
-        style_preferences=mock_style_preferences
+        "AI vs traditional methods", mock_format_details, style_preferences=mock_style_preferences
     )
-    
+
     assert "watercolor" in result.image_prompt
     assert "vibrant" in result.image_prompt
     assert "dramatic" in result.image_prompt
@@ -133,9 +126,9 @@ def test_text_position_organization(prompt_generator: PromptGenerationAgent) -> 
     """Test organizing text into positions."""
     text = "First part | Second part"
     positions = ["top", "bottom"]
-    
+
     result = prompt_generator._organize_text_positions(text, positions)
-    
+
     assert result["top"] == "First part"
     assert result["bottom"] == "Second part"
 
@@ -144,9 +137,9 @@ def test_text_position_organization_single_text(prompt_generator: PromptGenerati
     """Test organizing single text into positions."""
     text = "Single text"
     positions = ["top", "bottom"]
-    
+
     result = prompt_generator._organize_text_positions(text, positions)
-    
+
     assert result["top"] == "Single text"
     assert result["bottom"] == ""
 
@@ -154,15 +147,11 @@ def test_text_position_organization_single_text(prompt_generator: PromptGenerati
 def test_style_preferences_application(prompt_generator: PromptGenerationAgent) -> None:
     """Test applying style preferences to image prompt."""
     prompt = "Base prompt"
-    preferences = {
-        "artistic_style": "pixel art",
-        "color_scheme": "neon",
-        "lighting": "ambient"
-    }
+    preferences = {"artistic_style": "pixel art", "color_scheme": "neon", "lighting": "ambient"}
     base_style = "cartoon"
-    
+
     result = prompt_generator._apply_style_preferences(prompt, preferences, base_style)
-    
+
     assert "cartoon" in result
     assert "pixel art" in result
     assert "neon colors" in result
@@ -172,14 +161,13 @@ def test_style_preferences_application(prompt_generator: PromptGenerationAgent) 
 def test_style_guide_compilation(
     prompt_generator: PromptGenerationAgent,
     mock_format_details: Dict[str, Any],
-    mock_style_preferences: Dict[str, Any]
+    mock_style_preferences: Dict[str, Any],
 ) -> None:
     """Test compiling style guide from format and preferences."""
     style_guide = prompt_generator._compile_style_guide(
-        mock_format_details["structure"],
-        mock_style_preferences
+        mock_format_details["structure"], mock_style_preferences
     )
-    
+
     assert style_guide["layout"] == "vertical"
     assert style_guide["text_style"]["font"] == "Comic Sans"
     assert style_guide["text_style"]["color"] == "black"
@@ -194,17 +182,17 @@ def test_style_guide_compilation(
 def test_prompt_generation_error_handling(
     prompt_generator: PromptGenerationAgent,
     mock_format_details: Dict[str, Any],
-    mocker: "MockerFixture"
+    mocker: "MockerFixture",
 ) -> None:
     """Test error handling in prompt generation."""
     # Make caption generator raise an exception
     mocker.patch.object(
         prompt_generator.caption_generator,
         "__call__",
-        side_effect=Exception("Caption generation failed")
+        side_effect=Exception("Caption generation failed"),
     )
-    
+
     with pytest.raises(RuntimeError) as exc_info:
         prompt_generator.forward("AI vs traditional methods", mock_format_details)
-    
-    assert "Failed to generate prompts" in str(exc_info.value) 
+
+    assert "Failed to generate prompts" in str(exc_info.value)
