@@ -27,11 +27,10 @@ class ActorMailbox:
     ):
         self.capacity = capacity
         self.overflow_strategy = overflow_strategy
-        self._queue: asyncio.Queue = asyncio.Queue(maxsize=capacity)
+        self._queue: Optional[asyncio.Queue] = None
+        self._backpressure_event: Optional[asyncio.Event] = None
         self.high_water_mark = int(capacity * 0.8)
         self.low_water_mark = int(capacity * 0.2)
-        self._backpressure_event = asyncio.Event()
-        self._backpressure_event.set()  # Not under pressure initially
         self.logger = logging.getLogger("mailbox")
         
         # Metrics
@@ -39,8 +38,17 @@ class ActorMailbox:
         self.messages_dropped = 0
         self.messages_processed = 0
         
+    def _ensure_initialized(self):
+        """Ensure queue is initialized in the correct event loop."""
+        if self._queue is None:
+            self._queue = asyncio.Queue(maxsize=self.capacity)
+        if self._backpressure_event is None:
+            self._backpressure_event = asyncio.Event()
+            self._backpressure_event.set()  # Not under pressure initially
+        
     async def put(self, message: Message) -> bool:
         """Put a message in the mailbox."""
+        self._ensure_initialized()
         self.messages_received += 1
         
         if self._queue.qsize() >= self.capacity:
@@ -60,6 +68,7 @@ class ActorMailbox:
             
     async def get(self) -> Optional[Message]:
         """Get a message from the mailbox."""
+        self._ensure_initialized()
         try:
             message = await self._queue.get()
             self.messages_processed += 1
@@ -102,32 +111,63 @@ class ActorMailbox:
             
     def _signal_backpressure(self) -> None:
         """Signal that mailbox is under pressure."""
+        self._ensure_initialized()
         if self._backpressure_event.is_set():
             self.logger.warning("Mailbox under pressure, signaling backpressure")
             self._backpressure_event.clear()
             
     def _relieve_backpressure(self) -> None:
         """Signal that backpressure is relieved."""
+        self._ensure_initialized()
         if not self._backpressure_event.is_set():
             self.logger.info("Mailbox pressure relieved")
             self._backpressure_event.set()
             
     async def wait_for_capacity(self) -> None:
         """Wait until mailbox has capacity."""
+        self._ensure_initialized()
         await self._backpressure_event.wait()
         
     def is_under_pressure(self) -> bool:
         """Check if mailbox is under pressure."""
+        self._ensure_initialized()
         return not self._backpressure_event.is_set()
         
     def size(self) -> int:
         """Get current mailbox size."""
+        self._ensure_initialized()
         return self._queue.qsize()
         
     def is_empty(self) -> bool:
         """Check if mailbox is empty."""
+        self._ensure_initialized()
         return self._queue.empty()
         
     def is_full(self) -> bool:
         """Check if mailbox is full."""
+        self._ensure_initialized()
         return self._queue.qsize() >= self.capacity
+        
+    @property
+    def size(self) -> int:
+        """Get current mailbox size."""
+        self._ensure_initialized()
+        return self._queue.qsize()
+        
+    @property
+    def is_empty(self) -> bool:
+        """Check if mailbox is empty."""
+        self._ensure_initialized()
+        return self._queue.empty()
+        
+    @property
+    def is_full(self) -> bool:
+        """Check if mailbox is full."""
+        self._ensure_initialized()
+        return self._queue.qsize() >= self.capacity
+        
+    @property
+    def remaining_capacity(self) -> int:
+        """Get remaining mailbox capacity."""
+        self._ensure_initialized()
+        return self.capacity - self._queue.qsize()

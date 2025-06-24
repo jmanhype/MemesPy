@@ -40,15 +40,27 @@ class DatabaseConnectionManager:
             Engine: SQLAlchemy engine
         """
         if not self._sync_engine:
+            sync_url = str(settings.database_url)
+            # Convert async SQLite URL to sync
+            if sync_url.startswith("sqlite+aiosqlite:///"):
+                sync_url = sync_url.replace("sqlite+aiosqlite:///", "sqlite:///")
+            
+            # Don't use QueuePool for SQLite
+            pool_kwargs = {}
+            if not sync_url.startswith("sqlite"):
+                pool_kwargs = {
+                    "poolclass": QueuePool,
+                    "pool_size": 10,
+                    "max_overflow": 20,
+                    "pool_timeout": 30,
+                    "pool_recycle": 3600,
+                }
+            
             self._sync_engine = create_engine(
-                str(settings.database_url),
-                poolclass=QueuePool,
-                pool_size=10,  # Default pool size
-                max_overflow=20,  # Default max overflow
-                pool_timeout=30,  # Default timeout
-                pool_recycle=3600,  # Default recycle time
+                sync_url,
                 pool_pre_ping=True,  # Enable connection health checks
                 echo=False,  # Default echo
+                **pool_kwargs
             )
             
             # Set up engine event listeners
@@ -66,20 +78,28 @@ class DatabaseConnectionManager:
         """
         if not self._async_engine:
             async_url = str(settings.database_url)
-            # Convert sync URL to async
+            # Convert sync URL to async if needed
             if async_url.startswith("postgresql://"):
                 async_url = async_url.replace("postgresql://", "postgresql+asyncpg://")
             elif async_url.startswith("sqlite:///"):
                 async_url = async_url.replace("sqlite:///", "sqlite+aiosqlite:///")
+            # If already async, keep as is
+            
+            # Don't use pool settings for SQLite
+            pool_kwargs = {}
+            if not async_url.startswith("sqlite"):
+                pool_kwargs = {
+                    "pool_size": 10,
+                    "max_overflow": 20, 
+                    "pool_timeout": 30,
+                    "pool_recycle": 3600,
+                }
             
             self._async_engine = create_async_engine(
                 async_url,
-                pool_size=10,  # Default pool size
-                max_overflow=20,  # Default max overflow
-                pool_timeout=30,  # Default timeout
-                pool_recycle=3600,  # Default recycle time
                 pool_pre_ping=True,  # Enable connection health checks
                 echo=False,  # Default echo
+                **pool_kwargs
             )
         return self._async_engine
 

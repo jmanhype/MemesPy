@@ -13,7 +13,7 @@ from dataclasses import dataclass
 
 from src.dspy_meme_gen.actors.core import Actor, Message
 from src.dspy_meme_gen.actors.supervisor import Supervisor, RestartPolicy
-from src.dspy_meme_gen.actors.adaptive_concurrency import AdaptiveConcurrencyActor
+from src.dspy_meme_gen.actors.adaptive_concurrency import ConcurrencyLimitedActor
 from src.dspy_meme_gen.actors.work_stealing_pool import WorkStealingPool
 
 
@@ -35,7 +35,7 @@ def setup_supervisor_with_system(supervisor, mock_system):
 @dataclass
 class ChaosTestMessage(Message):
     """Message for chaos testing."""
-    payload: str
+    payload: str = ""
     inject_failure: bool = False
     delay_ms: int = 0
 

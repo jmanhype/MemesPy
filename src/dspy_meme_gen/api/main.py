@@ -21,9 +21,10 @@ logging.basicConfig(level=getattr(logging, settings.log_level.upper()))
 logger = logging.getLogger(__name__)
 
 # Create database tables
-Base.metadata.create_all(bind=db_manager.sync_engine)
-MetadataBase.metadata.create_all(bind=db_manager.sync_engine)
-PrivacyBase.metadata.create_all(bind=db_manager.sync_engine)
+# NOTE: Commented out for async SQLite - tables will be created on startup
+# Base.metadata.create_all(bind=db_manager.sync_engine)
+# MetadataBase.metadata.create_all(bind=db_manager.sync_engine)
+# PrivacyBase.metadata.create_all(bind=db_manager.sync_engine)
 
 # Create FastAPI application
 app = FastAPI(

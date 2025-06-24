@@ -3,7 +3,7 @@
 from typing import Dict, Any, List
 import pytest
 from unittest.mock import Mock, patch
-from src.dspy_meme_gen.agents.factuality import FactualityAgent, FactCheck, FactualityResult
+from dspy_meme_gen.agents.factuality import FactualityAgent, FactCheck, FactualityResult
 
 
 @pytest.fixture

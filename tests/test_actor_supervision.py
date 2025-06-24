@@ -11,7 +11,7 @@ from unittest.mock import Mock, AsyncMock, patch
 from typing import Dict, Any, List
 
 from src.dspy_meme_gen.actors.core import Actor, Message
-from src.dspy_meme_gen.actors.supervisor import Supervisor
+from src.dspy_meme_gen.actors.supervisor import Supervisor, RestartStrategy, RestartPolicy
 from src.dspy_meme_gen.actors.adaptive_concurrency import ConcurrencyLimitedActor
 from src.dspy_meme_gen.actors.work_stealing_pool import WorkStealingPool, WorkStealingWorker
 
@@ -160,7 +160,7 @@ class TestSupervisionStrategy:
     async def test_one_for_one_strategy(self, mock_system):
         """Test one-for-one supervision strategy."""
         supervisor = setup_supervisor_with_system(
-            Supervisor("supervisor", strategy="one_for_one"), mock_system
+            Supervisor("supervisor", restart_strategy=RestartStrategy.ONE_FOR_ONE), mock_system
         )
         
         # Spawn children
@@ -184,16 +184,16 @@ class TestSupervisionStrategy:
         assert "child2" in supervisor.children  
         assert "child3" in supervisor.children
         
-        # Child2 should be a new instance
+        # Child2 should be a new instance (supervisor wraps actors in SupervisedActor)
         new_child2 = supervisor.children["child2"]
-        assert new_child2 != original_child2
+        assert new_child2.actor != original_child2.actor
         
         await supervisor.stop()
     
     async def test_one_for_all_strategy(self, mock_system):
         """Test one-for-all supervision strategy."""
         supervisor = setup_supervisor_with_system(
-            Supervisor("supervisor", strategy="one_for_all"), mock_system
+            Supervisor("supervisor", restart_strategy=RestartStrategy.ONE_FOR_ALL), mock_system
         )
         
         # Spawn children
@@ -215,8 +215,8 @@ class TestSupervisionStrategy:
         assert len(supervisor.children) == 3
         for name in ["child1", "child2", "child3"]:
             assert name in supervisor.children
-            # Should be new instances
-            assert supervisor.children[name] != original_children[name]
+            # Should be new instances (supervisor wraps actors in SupervisedActor)
+            assert supervisor.children[name].actor != original_children[name].actor
         
         await supervisor.stop()
 
@@ -250,7 +250,6 @@ class TestErrorHandling:
     
     async def test_max_restart_limit(self, mock_system):
         """Test max restart limit enforcement."""
-        from src.dspy_meme_gen.actors.supervisor import RestartPolicy
         restart_policy = RestartPolicy(max_restarts=2, within_time_range=1.0)
         supervisor = setup_supervisor_with_system(
             Supervisor("supervisor", restart_policy=restart_policy), mock_system
@@ -322,7 +321,7 @@ class TestMemoryManagement:
         
         # After proper cleanup, supervisor should be collectable
         # (This test mainly ensures the weak reference pattern is in place)
-        assert hasattr(child_actor, '_handle_message')
+        assert hasattr(child_actor.actor, '_handle_message')
         
     async def test_child_cleanup_on_shutdown(self, mock_system):
         """Test that children are properly cleaned up on shutdown."""
@@ -340,11 +339,11 @@ class TestMemoryManagement:
         await supervisor.stop()
         
         # Children should have shutdown called
-        # Note: This relies on our TestActor implementation
-        if hasattr(child1, 'shutdown_called'):
-            assert child1.shutdown_called
-        if hasattr(child2, 'shutdown_called'):
-            assert child2.shutdown_called
+        # Note: This relies on our TestActor implementation (supervisor wraps actors)
+        if hasattr(child1.actor, 'shutdown_called'):
+            assert child1.actor.shutdown_called
+        if hasattr(child2.actor, 'shutdown_called'):
+            assert child2.actor.shutdown_called
 
 
 @pytest.mark.asyncio
@@ -356,7 +355,7 @@ class TestConcurrencySupervision:
         supervisor = setup_supervisor_with_system(Supervisor("supervisor"), mock_system)
         
         # Mock the concurrency controller
-        with patch('src.dspy_meme_gen.actors.adaptive_concurrency.DynamicConcurrencyController'):
+        with patch('src.dspy_meme_gen.actors.adaptive_concurrency.ConcurrencyController'):
             child_ref = await supervisor.spawn_child(
                 ConcurrencyLimitedActor,
                 "concurrency_actor", 
@@ -366,8 +365,8 @@ class TestConcurrencySupervision:
             assert "concurrency_actor" in supervisor.children
             concurrency_actor = supervisor.children["concurrency_actor"]
             
-            # Verify it's the right type
-            assert isinstance(concurrency_actor, ConcurrencyLimitedActor)
+            # Verify it's the right type (supervisor wraps actors in SupervisedActor)
+            assert isinstance(concurrency_actor.actor, ConcurrencyLimitedActor)
             
             await supervisor.stop()
 
@@ -390,8 +389,8 @@ class TestWorkStealingSupervision:
         assert "worker" in supervisor.children
         worker_actor = supervisor.children["worker"]
         
-        # Verify it's the right type
-        assert isinstance(worker_actor, WorkStealingWorker)
+        # Verify it's the right type (supervisor wraps actors in SupervisedActor)
+        assert isinstance(worker_actor.actor, WorkStealingWorker)
         
         await supervisor.stop()
 
@@ -403,7 +402,7 @@ class TestSupervisionIntegration:
     async def test_hierarchical_supervision(self, mock_system):
         """Test hierarchical supervision structure."""
         root_supervisor = setup_supervisor_with_system(
-            Supervisor("root", strategy="one_for_all"), mock_system
+            Supervisor("root", restart_strategy=RestartStrategy.ONE_FOR_ALL), mock_system
         )
         
         # Create child supervisors
