@@ -57,9 +57,7 @@ class RefinementLoopAgent(dspy.Module):
         self.config = config or RefinementConfig()
 
         # Initialize DSPy predictor for planning improvements
-        self.improvement_planner = dspy.ChainOfThought(
-            "scores, feedback -> suggestions"
-        )
+        self.improvement_planner = dspy.ChainOfThought("scores, feedback -> suggestions")
 
     def forward(
         self,

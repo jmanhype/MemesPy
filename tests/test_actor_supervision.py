@@ -20,12 +20,12 @@ from dspy_meme_gen.actors.work_stealing_pool import WorkStealingPool, WorkSteali
 def mock_system():
     """Fixture to provide a mocked actor system for testing."""
     mock_system = Mock()
-    
+
     # Create a mock ActorRef that returns itself for tell() method
     mock_ref = Mock()
     mock_ref.tell = AsyncMock()
     mock_ref.ask = AsyncMock()
-    
+
     mock_system.register_actor = AsyncMock(return_value=mock_ref)
     mock_system.unregister_actor = AsyncMock()
     return mock_system
@@ -216,8 +216,7 @@ class TestSupervisionStrategy:
 
         # Get initial child instances
         original_actors = {
-            name: supervised.actor 
-            for name, supervised in supervisor.children.items()
+            name: supervised.actor for name, supervised in supervisor.children.items()
         }
 
         # Simulate child2 failure by calling handle_child_failure directly
@@ -297,7 +296,11 @@ class TestErrorHandling:
         await asyncio.sleep(0.5)
 
         # Child should be terminated after max restarts
-        restart_count = supervisor.children["failing_child"].restart_count if "failing_child" in supervisor.children else 0
+        restart_count = (
+            supervisor.children["failing_child"].restart_count
+            if "failing_child" in supervisor.children
+            else 0
+        )
         assert restart_count <= 2  # Should not exceed max restarts
 
         await supervisor.stop()
@@ -312,9 +315,7 @@ class TestErrorHandling:
         )
 
         # Create supervision hierarchy
-        supervisor_ref = await root_supervisor.spawn_child(
-            Supervisor, "child_sup"
-        )
+        supervisor_ref = await root_supervisor.spawn_child(Supervisor, "child_sup")
 
         # This test would need more complex setup to properly test escalation
         # For now, just verify the structure
@@ -387,9 +388,7 @@ class TestConcurrencySupervision:
 
         # Mock the concurrency controller
         with patch("src.dspy_meme_gen.actors.adaptive_concurrency.ConcurrencyController"):
-            child_ref = await supervisor.spawn_child(
-                ConcurrencyLimitedActor, "concurrency_actor"
-            )
+            child_ref = await supervisor.spawn_child(ConcurrencyLimitedActor, "concurrency_actor")
 
             assert "concurrency_actor" in supervisor.children
             concurrency_actor = supervisor.children["concurrency_actor"]

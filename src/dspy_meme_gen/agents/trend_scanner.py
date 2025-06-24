@@ -54,9 +54,7 @@ class TrendScanningAgent(dspy.Module):
         super().__init__()
 
         # Trend analysis predictor
-        self.trend_analyzer = dspy.ChainOfThought(
-            "trends, topic -> trends, top_trend"
-        )
+        self.trend_analyzer = dspy.ChainOfThought("trends, topic -> trends, top_trend")
 
         # Initialize trend sources
         self.sources = self._initialize_sources()

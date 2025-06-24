@@ -45,13 +45,9 @@ class ScoringAgent(dspy.Module):
         self.content_guidelines = content_guidelines or ContentGuideline()
 
         # Initialize DSPy predictors for different scoring aspects
-        self.humor_scorer = dspy.ChainOfThought(
-            "caption, image_description -> score, reasoning"
-        )
+        self.humor_scorer = dspy.ChainOfThought("caption, image_description -> score, reasoning")
 
-        self.clarity_scorer = dspy.ChainOfThought(
-            "caption, image_description -> score, reasoning"
-        )
+        self.clarity_scorer = dspy.ChainOfThought("caption, image_description -> score, reasoning")
 
         self.creativity_scorer = dspy.ChainOfThought(
             "caption, image_description -> score, reasoning"

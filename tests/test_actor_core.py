@@ -27,7 +27,7 @@ from dspy_meme_gen.actors.mailbox import ActorMailbox, OverflowStrategy
 async def stop_actors(*actors):
     """Helper function to stop multiple actors safely."""
     for actor in actors:
-        if hasattr(actor, 'running') and actor.running:
+        if hasattr(actor, "running") and actor.running:
             try:
                 await actor.stop()
             except Exception as e:
@@ -40,15 +40,14 @@ async def cleanup_tasks():
     yield
     # Give time for any pending tasks to complete
     await asyncio.sleep(0.01)
-    
+
     # Get current task to avoid cancelling it
     current_task = asyncio.current_task()
-    
+
     # Cancel all remaining tasks except the current one
     loop = asyncio.get_event_loop()
-    tasks = [task for task in asyncio.all_tasks(loop) 
-             if not task.done() and task != current_task]
-    
+    tasks = [task for task in asyncio.all_tasks(loop) if not task.done() and task != current_task]
+
     for task in tasks:
         task.cancel()
         try:
@@ -103,12 +102,12 @@ class TestActor(Actor):
     async def on_error(self, error: Exception) -> None:
         """Track errors."""
         self.error_count += 1
-    
+
     async def stop(self) -> None:
         """Override stop to ensure proper cleanup."""
         self.running = False
         await self.on_stop()
-        
+
         # Cancel the internal task immediately
         if self._task and not self._task.done():
             self._task.cancel()
@@ -116,16 +115,16 @@ class TestActor(Actor):
                 await self._task
             except asyncio.CancelledError:
                 pass
-        
+
         self.logger.info(f"Actor {self.name} stopped")
-    
+
     async def send(self, message: Message) -> Any:
         """Send a message to this actor and wait for response."""
         # Process the message directly without going through mailbox
         # This simulates synchronous message handling for testing
         handler_name = f"handle_{message.__class__.__name__.lower()}"
         handler = getattr(self, handler_name, self.handle_unknown)
-        
+
         try:
             result = await handler(message)
             return result
@@ -208,7 +207,7 @@ class TestActorBasics:
     async def test_message_handling(self):
         """Test basic message handling."""
         actor = TestActor("message_test")
-        
+
         try:
             await actor.start()
 
@@ -229,7 +228,7 @@ class TestActorBasics:
     async def test_error_handling(self):
         """Test error handling in message processing."""
         actor = TestActor("error_test")
-        
+
         try:
             await actor.start()
 
@@ -249,7 +248,7 @@ class TestActorBasics:
     async def test_concurrent_message_processing(self):
         """Test handling multiple concurrent messages."""
         actor = TestActor("concurrent_test")
-        
+
         try:
             await actor.start()
 
@@ -422,7 +421,7 @@ class TestActorCommunication:
         """Test event broadcasting to multiple actors."""
         actors = []
         tasks = []
-        
+
         try:
             for i in range(3):
                 actor = TestActor(f"listener_{i}")
@@ -451,7 +450,7 @@ class TestActorCommunication:
                         await task
                     except asyncio.CancelledError:
                         pass
-            
+
             # Cleanup all actors using helper
             await stop_actors(*actors)
 
@@ -464,7 +463,7 @@ class TestActorPerformance:
         """Test actor performance under high message load."""
         actor = TestActor("performance_test")
         tasks = []
-        
+
         try:
             await actor.start()
 
@@ -482,7 +481,7 @@ class TestActorPerformance:
 
             # Filter out any exceptions from gather
             successful_responses = [r for r in responses if not isinstance(r, Exception)]
-            
+
             # Check all messages processed
             assert len(successful_responses) == message_count
             assert len(actor.requests_handled) == message_count
@@ -500,7 +499,7 @@ class TestActorPerformance:
                         await task
                     except asyncio.CancelledError:
                         pass
-            
+
             # Ensure actor is stopped
             if actor.running:
                 await actor.stop()

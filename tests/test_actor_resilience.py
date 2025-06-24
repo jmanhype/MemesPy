@@ -21,7 +21,7 @@ from dspy_meme_gen.actors.work_stealing_pool import WorkStealingPool
 def mock_system():
     """Fixture to provide a mocked actor system for testing."""
     mock_system = Mock()
-    
+
     # Create a mock ActorRef that returns itself for tell() method
     def create_mock_ref(actor):
         mock_ref = Mock()
@@ -29,7 +29,7 @@ def mock_system():
         mock_ref.ask = AsyncMock()
         mock_ref._actor = actor
         return mock_ref
-    
+
     # Make register_actor return a proper mock ActorRef
     mock_system.register_actor = AsyncMock(side_effect=create_mock_ref)
     mock_system.unregister_actor = AsyncMock()

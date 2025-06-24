@@ -43,6 +43,7 @@ class MemeGenerator:
             if not api_key:
                 # In test environments, we might use mocks
                 import sys
+
                 if "pytest" in sys.modules:
                     api_key = "test-key"  # Tests should mock this anyway
                 else:
@@ -111,6 +112,7 @@ class MemeGenerator:
 
 # Singleton instance - create lazily to avoid import-time API key requirements
 _meme_generator = None
+
 
 def get_meme_generator():
     """Get or create the singleton MemeGenerator instance."""

@@ -48,9 +48,7 @@ class AppropriatenessAgent(dspy.Module):
     def __init__(self) -> None:
         """Initialize the appropriateness agent."""
         super().__init__()
-        self.screener = dspy.ChainOfThought(
-            "concept -> is_appropriate, concerns, alternatives"
-        )
+        self.screener = dspy.ChainOfThought("concept -> is_appropriate, concerns, alternatives")
 
     def forward(self, concept: Dict[str, Any]) -> Dict[str, Any]:
         """Check appropriateness of a meme concept.

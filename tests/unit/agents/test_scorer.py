@@ -16,12 +16,13 @@ if TYPE_CHECKING:
 def mock_scorer_response() -> Any:
     """Mock the scorer response."""
     from unittest.mock import MagicMock
+
     return MagicMock(
-        humor_score=0.8, 
-        clarity_score=0.7, 
-        creativity_score=0.9, 
+        humor_score=0.8,
+        clarity_score=0.7,
+        creativity_score=0.9,
         shareability_score=0.6,
-        feedback="Good meme"
+        feedback="Good meme",
     )
 
 
@@ -39,13 +40,13 @@ def scoring_agent(mock_dspy_config: Dict[str, Any], mock_scorer_response: Any) -
     """Create a scoring agent with mocked DSPy components."""
     # Configure the mock ChainOfThought to return our mock response
     mock_dspy_config["chain_of_thought"].return_value.return_value = mock_scorer_response
-    
+
     # Create the agent - it will use the mocked DSPy components
     agent = ScoringAgent()
-    
+
     # Ensure the scorer's call returns our mock response
     agent.scorer.return_value = mock_scorer_response
-    
+
     return agent
 
 
@@ -156,28 +157,30 @@ def test_scoring_with_all_checks(
 def test_memes_sorted_by_score(mock_dspy_config: Dict[str, Any]) -> None:
     """Test that memes are sorted by score descending."""
     from unittest.mock import MagicMock
-    
+
     # Create mock responses with different scores
     mock_responses = [
         MagicMock(
-            humor_score=0.5, 
-            clarity_score=0.5, 
-            creativity_score=0.5, 
+            humor_score=0.5,
+            clarity_score=0.5,
+            creativity_score=0.5,
             shareability_score=0.5,
-            feedback="Average meme"
+            feedback="Average meme",
         ),
         MagicMock(
-            humor_score=0.9, 
-            clarity_score=0.9, 
-            creativity_score=0.9, 
+            humor_score=0.9,
+            clarity_score=0.9,
+            creativity_score=0.9,
             shareability_score=0.9,
-            feedback="Excellent meme"
+            feedback="Excellent meme",
         ),
     ]
-    
+
     # Configure mock to return different responses for each call
-    mock_dspy_config["chain_of_thought"].return_value.return_value = MagicMock(side_effect=mock_responses)
-    
+    mock_dspy_config["chain_of_thought"].return_value.return_value = MagicMock(
+        side_effect=mock_responses
+    )
+
     # Create agent with the mocked DSPy
     agent = ScoringAgent()
     agent.scorer.side_effect = mock_responses
