@@ -62,3 +62,15 @@ def sample_meme_request():
         "context": "When tests finally pass",
         "style": "humor",
     }
+
+
+@pytest.fixture
+def app():
+    """Create FastAPI app for testing."""
+    from fastapi import FastAPI
+    from dspy_meme_gen.api.routers.health import router as health_router
+
+    app = FastAPI(title="Test Meme Generator")
+    app.include_router(health_router, tags=["health"])
+
+    return app

@@ -117,14 +117,11 @@ async def test_check_health_all_healthy(
     assert details["status"] == "healthy"
     assert "timestamp" in details
     assert "uptime" in details
-    assert all(
-        component in details["components"]
-        for component in ["database", "redis", "system", "metrics"]
-    )
-    assert details["components"]["database"]["status"] == "connected"
-    assert details["components"]["redis"]["status"] == "connected"
-    assert details["components"]["system"]["status"] == "healthy"
-    assert details["components"]["metrics"]["status"] == "healthy"
+    assert all(component in details for component in ["database", "redis", "system", "metrics"])
+    assert details["database"]["status"] == "connected"
+    assert details["redis"]["status"] == "connected"
+    assert details["system"]["status"] == "healthy"
+    assert details["metrics"]["status"] == "healthy"
 
 
 @pytest.mark.asyncio
@@ -157,8 +154,8 @@ async def test_check_health_database_unhealthy(
 
     assert is_healthy is False
     assert details["status"] == "unhealthy"
-    assert details["components"]["database"]["status"] == "error"
-    assert "Database connection failed" in details["components"]["database"]["error"]
+    assert details["database"]["status"] == "error"
+    assert "Database connection failed" in details["database"]["error"]
 
 
 @pytest.mark.asyncio
@@ -191,8 +188,8 @@ async def test_check_health_redis_unhealthy(
 
     assert is_healthy is False
     assert details["status"] == "unhealthy"
-    assert details["components"]["redis"]["status"] == "error"
-    assert "Redis connection failed" in details["components"]["redis"]["error"]
+    assert details["redis"]["status"] == "error"
+    assert "Redis connection failed" in details["redis"]["error"]
 
 
 @pytest.mark.asyncio
