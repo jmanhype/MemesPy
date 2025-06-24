@@ -25,10 +25,10 @@ class PromptGenerationAgent(dspy.Module):
         """Initialize the prompt generation agent."""
         super().__init__()
         self.caption_generator = dspy.ChainOfThought(
-            "Given a meme topic {topic} and format {format}, generate a funny and relevant caption."
+            "topic: str, format: str, format_structure: dict, constraints: dict -> caption: str, reasoning: str"
         )
         self.image_prompt_generator = dspy.ChainOfThought(
-            "Given a meme topic {topic}, format {format}, and caption {caption}, create a detailed image generation prompt."
+            "topic: str, format: str, caption: str, format_structure: dict, style_preferences: dict -> image_prompt: str"
         )
 
     def forward(

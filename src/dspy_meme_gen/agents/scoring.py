@@ -46,27 +46,19 @@ class ScoringAgent(dspy.Module):
 
         # Initialize DSPy predictors for different scoring aspects
         self.humor_scorer = dspy.ChainOfThought(
-            "Given a meme with caption {caption} and image description {image_description}, "
-            "evaluate its humor quality considering cleverness, unexpectedness, cultural relevance, "
-            "and timing. Return a score between 0 and 1 with detailed reasoning."
+            "caption, image_description -> score, reasoning"
         )
 
         self.clarity_scorer = dspy.ChainOfThought(
-            "Given a meme with caption {caption} and image description {image_description}, "
-            "evaluate its clarity considering visual clarity, text readability, and immediate "
-            "understanding. Return a score between 0 and 1 with detailed reasoning."
+            "caption, image_description -> score, reasoning"
         )
 
         self.creativity_scorer = dspy.ChainOfThought(
-            "Given a meme with caption {caption} and image description {image_description}, "
-            "evaluate its creativity considering originality, novel combinations, and visual "
-            "distinctiveness. Return a score between 0 and 1 with detailed reasoning."
+            "caption, image_description -> score, reasoning"
         )
 
         self.shareability_scorer = dspy.ChainOfThought(
-            "Given a meme with caption {caption} and image description {image_description}, "
-            "evaluate its shareability considering broad appeal, conversation starter quality, "
-            "and topical relevance. Return a score between 0 and 1 with detailed reasoning."
+            "caption, image_description -> score, reasoning"
         )
 
     def forward(

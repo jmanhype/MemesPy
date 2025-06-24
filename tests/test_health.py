@@ -68,11 +68,7 @@ def health_check(mock_db_engine: AsyncEngine, mock_redis_client: aioredis.Redis)
     Returns:
         HealthCheck instance
     """
-    external_services = {
-        "openai": {"url": "https://api.openai.com", "timeout": 30},
-        "cloudinary": {"url": "https://api.cloudinary.com", "timeout": 30},
-    }
-    return HealthCheck(mock_db_engine, mock_redis_client, external_services)
+    return HealthCheck(mock_db_engine, mock_redis_client)
 
 
 @pytest.fixture

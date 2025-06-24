@@ -15,7 +15,7 @@ class InstructionFollowingAgent(dspy.Module):
         """Initialize the instruction following agent."""
         super().__init__()
         self.checker = dspy.ChainOfThought(
-            "Given a meme concept {concept} and constraints {constraints}, verify if all constraints are satisfied."
+            "concept, constraints -> constraints_met, violations, suggestions"
         )
 
     def forward(self, concept: Dict[str, Any], constraints: Dict[str, Any]) -> Dict[str, Any]:

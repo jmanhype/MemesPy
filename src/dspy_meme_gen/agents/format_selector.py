@@ -33,7 +33,7 @@ class FormatSelectionAgent(dspy.Module):
         super().__init__()
         self.db_session = db_session
         self.format_matcher = dspy.ChainOfThought(
-            "Given a meme topic {topic} and trending information {trends}, select the most appropriate meme format."
+            "topic, trends -> format_characteristics, topic_requirements, rationale"
         )
 
     async def get_available_formats(self) -> List[Dict[str, Any]]:

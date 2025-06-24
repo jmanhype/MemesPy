@@ -15,7 +15,7 @@ class FactualityAgent(dspy.Module):
         """Initialize the factuality agent."""
         super().__init__()
         self.checker = dspy.ChainOfThought(
-            "Given a meme concept {concept} with topic {topic}, identify and verify any factual claims."
+            "concept, topic -> is_factual, confidence, factual_issues, corrections"
         )
 
     def forward(self, concept: Dict[str, Any], topic: str) -> Dict[str, Any]:
@@ -49,7 +49,7 @@ class AppropriatenessAgent(dspy.Module):
         """Initialize the appropriateness agent."""
         super().__init__()
         self.screener = dspy.ChainOfThought(
-            "Given a meme concept {concept}, assess its appropriateness across different contexts and audiences."
+            "concept -> is_appropriate, concerns, alternatives"
         )
 
     def forward(self, concept: Dict[str, Any]) -> Dict[str, Any]:
@@ -81,7 +81,7 @@ class InstructionFollowingAgent(dspy.Module):
         """Initialize the instruction following agent."""
         super().__init__()
         self.checker = dspy.ChainOfThought(
-            "Given a meme concept {concept} and constraints {constraints}, verify if all constraints are satisfied."
+            "concept, constraints -> constraints_met, violations, suggestions"
         )
 
     def forward(self, concept: Dict[str, Any], constraints: Dict[str, Any]) -> Dict[str, Any]:

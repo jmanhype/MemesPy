@@ -52,26 +52,12 @@ class AppropriatenessAgent(dspy.Module):
 
         # Content analyzer predictor
         self.content_analyzer = dspy.ChainOfThought(
-            """Given a meme concept, analyze its content for:
-            1. Potentially offensive or insensitive elements
-            2. Cultural appropriateness and context
-            3. Age-appropriate content considerations
-            4. Professional environment suitability
-            
-            Identify any concerning elements and suggest modifications.
-            """
+            "concept, context, guidelines, strict_mode -> issues"
         )
 
         # Audience analyzer predictor
         self.audience_analyzer = dspy.ChainOfThought(
-            """Given a meme concept and its content analysis, determine:
-            1. Suitable target audiences
-            2. Potential impact on different groups
-            3. Cultural resonance and sensitivity
-            4. Context-specific appropriateness
-            
-            Provide detailed audience suitability assessment.
-            """
+            "concept, content_analysis, context -> suitable_audiences"
         )
 
     def forward(

@@ -58,9 +58,7 @@ class RefinementLoopAgent(dspy.Module):
 
         # Initialize DSPy predictor for planning improvements
         self.improvement_planner = dspy.ChainOfThought(
-            "Given a meme with scores {scores} and feedback {feedback}, "
-            "plan specific improvements for the caption and image prompt "
-            "to address the identified issues."
+            "scores, feedback -> suggestions"
         )
 
     def forward(

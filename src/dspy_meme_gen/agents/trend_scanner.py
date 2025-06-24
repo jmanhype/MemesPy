@@ -55,14 +55,7 @@ class TrendScanningAgent(dspy.Module):
 
         # Trend analysis predictor
         self.trend_analyzer = dspy.ChainOfThought(
-            """Given a set of trending topics and an optional meme topic, analyze:
-            1. The meme potential of each trend
-            2. Relevance to the given topic (if provided)
-            3. Current cultural context and impact
-            4. Potential humor angles and formats
-            
-            Provide a detailed analysis with scores and reasoning.
-            """
+            "trends, topic -> trends, top_trend"
         )
 
         # Initialize trend sources
