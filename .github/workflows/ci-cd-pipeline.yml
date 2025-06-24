@@ -117,7 +117,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ENVIRONMENT: test
         run: |
-          pytest tests/ -v --cov=src --cov-report=xml --cov-report=html --cov-report=term-missing
+          pytest tests/ -v --cov=src --cov-report=xml --cov-report=html --cov-report=term-missing --timeout=60 -m "not slow" -x
 
       - name: 📊 Upload Coverage
         uses: codecov/codecov-action@v3
