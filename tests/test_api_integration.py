@@ -47,14 +47,14 @@ def test_meme_generation_validation(client):
     }
 
     with patch(
-        "dspy_meme_gen.dspy_modules.meme_predictor.MemePredictorModule.forward"
+        "dspy_meme_gen.dspy_modules.meme_predictor.MemePredictor.forward"
     ) as mock_forward:
         mock_forward.return_value = MagicMock(
             text="Test meme text", image_prompt="Test image prompt"
         )
 
         with patch(
-            "dspy_meme_gen.dspy_modules.image_generator.ImageGeneratorModule.generate_image"
+            "dspy_meme_gen.dspy_modules.image_generator.ImageGenerator.generate"
         ) as mock_image:
             mock_image.return_value = "/static/test.png"
 
