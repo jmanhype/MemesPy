@@ -76,8 +76,13 @@ class ConcurrencyManager:
         self.failed_requests = 0
         self.timeout_requests = 0
 
-        # Start background cleanup task
-        self._cleanup_task = asyncio.create_task(self._cleanup_expired_requests())
+        # Background cleanup task (will be started on first use)
+        self._cleanup_task: Optional[asyncio.Task] = None
+
+    async def _ensure_cleanup_task(self):
+        """Ensure the cleanup task is running."""
+        if self._cleanup_task is None:
+            self._cleanup_task = asyncio.create_task(self._cleanup_expired_requests())
 
     async def submit_request(
         self,
@@ -100,6 +105,9 @@ class ConcurrencyManager:
             asyncio.QueueFull: If queue is full (backpressure)
             RuntimeError: If circuit breaker is open
         """
+        # Ensure cleanup task is running
+        await self._ensure_cleanup_task()
+        
         # Check circuit breaker
         if self.circuit_open:
             if time.time() - self.circuit_open_time < self.circuit_recovery_timeout:
