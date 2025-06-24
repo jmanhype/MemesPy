@@ -148,7 +148,13 @@ class ImageRenderingAgent(dspy.Module):
 
         # Calculate text position
         width, height = image.size
-        text_width, text_height = draw.textsize(caption, font=font)
+        # Use textbbox for PIL 9.2.0+ compatibility
+        try:
+            bbox = draw.textbbox((0, 0), caption, font=font)
+            text_width, text_height = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        except AttributeError:
+            # Fallback for older PIL versions
+            text_width, text_height = draw.textsize(caption, font=font)
         text_position = ((width - text_width) // 2, height - text_height - 20)
 
         # Draw text with outline
@@ -194,7 +200,13 @@ class ImageRenderingAgent(dspy.Module):
 
             # Calculate text position
             width, height = image.size
-            text_width, text_height = draw.textsize(caption, font=font)
+            # Use textbbox for PIL 9.2.0+ compatibility
+            try:
+                bbox = draw.textbbox((0, 0), caption, font=font)
+                text_width, text_height = bbox[2] - bbox[0], bbox[3] - bbox[1]
+            except AttributeError:
+                # Fallback for older PIL versions
+                text_width, text_height = draw.textsize(caption, font=font)
 
             if position == "top":
                 text_position = ((width - text_width) // 2, 20)

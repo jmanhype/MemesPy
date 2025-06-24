@@ -71,6 +71,6 @@ def app():
     from dspy_meme_gen.api.routers.health import router as health_router
 
     app = FastAPI(title="Test Meme Generator")
-    app.include_router(health_router, tags=["health"])
+    app.include_router(health_router, prefix="/health", tags=["health"])
 
     return app

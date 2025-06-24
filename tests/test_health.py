@@ -155,7 +155,7 @@ async def test_check_health_database_unhealthy(
     assert is_healthy is False
     assert details["status"] == "unhealthy"
     assert details["database"]["status"] == "error"
-    assert "Database connection failed" in details["database"]["error"]
+    assert "Database connection failed" in details["database"]["message"]
 
 
 @pytest.mark.asyncio
@@ -189,7 +189,7 @@ async def test_check_health_redis_unhealthy(
     assert is_healthy is False
     assert details["status"] == "unhealthy"
     assert details["redis"]["status"] == "error"
-    assert "Redis connection failed" in details["redis"]["error"]
+    assert "Redis connection failed" in details["redis"]["message"]
 
 
 @pytest.mark.asyncio
