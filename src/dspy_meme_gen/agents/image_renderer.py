@@ -115,10 +115,7 @@ class ImageRenderingAgent(dspy.Module):
         if image_response.status_code != 200:
             raise RuntimeError("Failed to download generated image")
 
-        openai.api_key = self.api_key
-        response = openai.Image.create(prompt=prompt, n=1, size="1024x1024")
-        image_url = response["data"][0]["url"]
-        return requests.get(image_url).content
+        return image_response.content
 
     def _generate_stability_image(self, prompt: str) -> bytes:
         """Generate image using Stability AI."""
