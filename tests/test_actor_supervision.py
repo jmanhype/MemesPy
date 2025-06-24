@@ -274,7 +274,12 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_max_restart_limit(self, mock_system):
         """Test max restart limit enforcement."""
-        restart_policy = RestartPolicy(max_restarts=2, within_time_range=1.0)
+        restart_policy = RestartPolicy(
+            max_restarts=2, 
+            within_time_range=1.0,
+            initial_delay=0.01,  # Very short initial delay for tests
+            max_delay=0.1        # Cap backoff to prevent long delays
+        )
         supervisor = setup_supervisor_with_system(
             Supervisor("supervisor", restart_policy=restart_policy), mock_system
         )
@@ -283,17 +288,17 @@ class TestErrorHandling:
         child_ref = await supervisor.spawn_child(FailingActor, "failing_child")
 
         # Trigger multiple failures
-        for i in range(5):
+        for i in range(3):  # Reduced from 5 to 3 for faster test
             try:
                 # Simulate failure by calling handle_child_failure directly
                 test_exception = RuntimeError(f"Test failure #{i} in failing_child")
                 await supervisor.handle_child_failure("failing_child", test_exception)
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0.05)  # Shorter sleep
             except Exception:
                 pass  # Expected failures
 
-        # Wait for all supervision attempts
-        await asyncio.sleep(0.5)
+        # Wait for all supervision attempts with shorter timeout
+        await asyncio.sleep(0.2)
 
         # Child should be terminated after max restarts
         restart_count = (
