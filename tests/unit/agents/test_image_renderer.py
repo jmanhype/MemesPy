@@ -73,7 +73,7 @@ def test_image_generation_success(
 
     # Create agent and generate image
     agent = ImageRenderingAgent(api_key="test_key")
-    result = agent(
+    result = agent.forward(
         image_prompt=sample_prompt_result["image_prompt"], caption=sample_prompt_result["caption"]
     )
 
@@ -101,7 +101,7 @@ def test_image_generation_with_text_overlay(
 
     # Create agent and generate image with text overlay
     agent = ImageRenderingAgent(api_key="test_key")
-    result = agent(
+    result = agent.forward(
         image_prompt=sample_prompt_result["image_prompt"],
         caption=sample_prompt_result["caption"],
         format_details={"requirements": ["text_overlay"]},
@@ -123,7 +123,7 @@ def test_openai_api_error_handling(mocker, mock_openai_response, sample_prompt_r
     agent = ImageRenderingAgent(api_key="test_key")
 
     with pytest.raises(RuntimeError) as exc_info:
-        agent(image_prompt=sample_prompt_result["image_prompt"])
+        agent.forward(image_prompt=sample_prompt_result["image_prompt"])
 
     assert "OpenAI API error" in str(exc_info.value)
 
@@ -140,7 +140,7 @@ def test_cloudinary_upload_error_handling(
     agent = ImageRenderingAgent(api_key="test_key")
 
     with pytest.raises(RuntimeError) as exc_info:
-        agent(image_prompt=sample_prompt_result["image_prompt"])
+        agent.forward(image_prompt=sample_prompt_result["image_prompt"])
 
     assert "Failed to upload image" in str(exc_info.value)
 
@@ -175,7 +175,7 @@ def test_different_image_services(
         mocker.patch("stability_sdk.client.StabilityInference", return_value=stability_mock)
 
     agent = ImageRenderingAgent(api_key="test_key", image_service=service)
-    result = agent(image_prompt=sample_prompt_result["image_prompt"])
+    result = agent.forward(image_prompt=sample_prompt_result["image_prompt"])
 
     assert result["image_url"] == mock_cloudinary_response["secure_url"]
     assert result["width"] == mock_cloudinary_response["width"]
