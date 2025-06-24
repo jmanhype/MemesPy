@@ -145,9 +145,7 @@ def test_cloudinary_upload_error_handling(
     assert "Failed to upload image" in str(exc_info.value)
 
 
-@pytest.mark.parametrize(
-    "service,size", [("openai", "1024x1024"), ("stability", "512x512")]
-)
+@pytest.mark.parametrize("service,size", [("openai", "1024x1024"), ("stability", "512x512")])
 def test_different_image_services(
     mocker, mock_image_response, mock_cloudinary_response, sample_prompt_result, service, size
 ):
@@ -170,6 +168,7 @@ def test_different_image_services(
     if service == "stability":
         try:
             import stability_sdk
+
             stability_mock = mocker.Mock()
             stability_mock.generate.return_value = mock_service_response
             mocker.patch("stability_sdk.client.StabilityInference", return_value=stability_mock)
