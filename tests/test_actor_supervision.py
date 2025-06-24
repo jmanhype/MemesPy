@@ -275,10 +275,10 @@ class TestErrorHandling:
     async def test_max_restart_limit(self, mock_system):
         """Test max restart limit enforcement."""
         restart_policy = RestartPolicy(
-            max_restarts=2, 
+            max_restarts=2,
             within_time_range=1.0,
             initial_delay=0.01,  # Very short initial delay for tests
-            max_delay=0.1        # Cap backoff to prevent long delays
+            max_delay=0.1,  # Cap backoff to prevent long delays
         )
         supervisor = setup_supervisor_with_system(
             Supervisor("supervisor", restart_policy=restart_policy), mock_system
