@@ -63,50 +63,56 @@ def mock_image_prompt_response(mocker: "MockerFixture") -> Any:
 def prompt_generator(mocker: "MockerFixture") -> PromptGenerationAgent:
     """Create a prompt generation agent with mocked components."""
     agent = PromptGenerationAgent()
-    
+
     # Create mock DSPy module responses with proper attribute access
-    caption_response = mocker.Mock(spec=['caption', 'reasoning'])
+    caption_response = mocker.Mock(spec=["caption", "reasoning"])
     caption_response.caption = "Old methods | New AI methods"
     caption_response.reasoning = "Comparing traditional approach with modern AI"
-    
-    image_response = mocker.Mock(spec=['image_prompt'])
+
+    image_response = mocker.Mock(spec=["image_prompt"])
     image_response.image_prompt = "Drake meme format showing dismissal and approval gestures"
-    
+
     # Mock the DSPy modules directly by replacing them
     mock_caption_generator = mocker.Mock()
     mock_caption_generator.return_value = caption_response
-    
+
     mock_image_generator = mocker.Mock()
     mock_image_generator.return_value = image_response
-    
+
     agent.caption_generator = mock_caption_generator
     agent.image_prompt_generator = mock_image_generator
-    
+
     # Mock the internal methods to avoid DSPy calls
     mocker.patch.object(
         agent,
         "_apply_constraints",
         side_effect=lambda text, constraints, positions: (
-            text[:constraints.get("max_length", 100)] if constraints.get("max_length") else text
-        )
+            text[: constraints.get("max_length", 100)] if constraints.get("max_length") else text
+        ),
     )
     mocker.patch.object(
         agent,
         "_apply_style_preferences",
         side_effect=lambda prompt, prefs, style: (
             f"{prompt}, {style}"
-            + (f", {prefs.get('artistic_style')}" if prefs.get('artistic_style') else "")
-            + (f", using {prefs.get('color_scheme')} colors" if prefs.get('color_scheme') else "")
-            + (f", with {prefs.get('lighting')} lighting" if prefs.get('lighting') else "")
-        )
+            + (f", {prefs.get('artistic_style')}" if prefs.get("artistic_style") else "")
+            + (f", using {prefs.get('color_scheme')} colors" if prefs.get("color_scheme") else "")
+            + (f", with {prefs.get('lighting')} lighting" if prefs.get("lighting") else "")
+        ),
     )
     mocker.patch.object(
         agent,
         "_organize_text_positions",
-        side_effect=lambda text, positions: {
-            positions[0]: text.split("|")[0].strip() if "|" in text else text,
-            positions[1]: text.split("|")[1].strip() if "|" in text and len(text.split("|")) > 1 else ""
-        } if len(positions) >= 2 else {}
+        side_effect=lambda text, positions: (
+            {
+                positions[0]: text.split("|")[0].strip() if "|" in text else text,
+                positions[1]: (
+                    text.split("|")[1].strip() if "|" in text and len(text.split("|")) > 1 else ""
+                ),
+            }
+            if len(positions) >= 2
+            else {}
+        ),
     )
     mocker.patch.object(
         agent,
@@ -125,9 +131,9 @@ def prompt_generator(mocker: "MockerFixture") -> PromptGenerationAgent:
                 "color_scheme": style_prefs.get("color_scheme", ""),
                 "lighting": style_prefs.get("lighting", ""),
             },
-        }
+        },
     )
-    
+
     return agent
 
 
@@ -139,7 +145,9 @@ def test_prompt_generation_basic(
 
     assert isinstance(result, PromptGenerationResult)
     assert result.caption == "Old methods | New AI methods"
-    assert result.image_prompt == "Drake meme format showing dismissal and approval gestures, cartoon"
+    assert (
+        result.image_prompt == "Drake meme format showing dismissal and approval gestures, cartoon"
+    )
     assert result.reasoning == "Comparing traditional approach with modern AI"
     assert len(result.text_positions) == 2
     assert "text_style" in result.style_guide

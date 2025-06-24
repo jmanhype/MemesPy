@@ -16,10 +16,13 @@ logger = logging.getLogger(__name__)
 try:
     from dspy_meme_gen.models.connection import db_manager
     from dspy_meme_gen.models.db_models.memes import Base
-    from dspy_meme_gen.config.config import settings # To log which DB is used
+    from dspy_meme_gen.config.config import settings  # To log which DB is used
 except ImportError as e:
-    logger.error(f"Failed to import necessary modules. Make sure PYTHONPATH is set or run from project root. Error: {e}")
+    logger.error(
+        f"Failed to import necessary modules. Make sure PYTHONPATH is set or run from project root. Error: {e}"
+    )
     sys.exit(1)
+
 
 def initialize_database():
     """Creates all database tables defined in SQLAlchemy models."""
@@ -32,5 +35,6 @@ def initialize_database():
         logger.error(f"Error creating database tables: {e}", exc_info=True)
         sys.exit(1)
 
+
 if __name__ == "__main__":
-    initialize_database() 
+    initialize_database()
