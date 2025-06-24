@@ -28,4 +28,5 @@ numpy>=1.24.0
 colorthief>=0.2.1
 psutil>=5.9.0
 pandas>=2.0.0
-pyarrow>=14.0.0 
+pyarrow>=14.0.0
+prometheus-client>=0.19.0 
