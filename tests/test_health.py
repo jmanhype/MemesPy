@@ -256,8 +256,8 @@ async def test_check_health_metrics_unhealthy(
 
     assert is_healthy is False
     assert details["status"] == "unhealthy"
-    assert details["components"]["metrics"]["status"] == "error"
-    assert "Metrics collection failed" in details["components"]["metrics"]["error"]
+    assert details["metrics"]["status"] == "error"
+    assert "Metrics collection failed" in details["metrics"]["message"]
 
 
 def test_health_endpoint(client: TestClient) -> None:
