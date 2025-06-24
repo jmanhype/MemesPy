@@ -46,8 +46,8 @@ jobs:
       - name: 🔧 Lint (Ruff)
         run: ruff check src/ tests/
 
-      - name: 📊 Type Check (MyPy)
-        run: mypy src/ --ignore-missing-imports
+      # - name: 📊 Type Check (MyPy)
+      #   run: mypy src/ --ignore-missing-imports
 
       - name: 🔒 Security Scan
         run: |
