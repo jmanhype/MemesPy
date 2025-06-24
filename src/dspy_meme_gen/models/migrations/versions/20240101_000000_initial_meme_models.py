@@ -1,7 +1,7 @@
 """Initial meme models.
 
 Revision ID: initial_meme_models
-Revises: 
+Revises:
 Create Date: 2024-01-01 00:00:00.000000
 
 """
