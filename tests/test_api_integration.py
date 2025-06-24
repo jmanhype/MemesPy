@@ -46,9 +46,7 @@ def test_meme_generation_validation(client):
         "style": "humor",
     }
 
-    with patch(
-        "dspy_meme_gen.dspy_modules.meme_predictor.MemePredictor.forward"
-    ) as mock_forward:
+    with patch("dspy_meme_gen.dspy_modules.meme_predictor.MemePredictor.forward") as mock_forward:
         mock_forward.return_value = MagicMock(
             text="Test meme text", image_prompt="Test image prompt"
         )
