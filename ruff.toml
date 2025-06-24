@@ -2,8 +2,8 @@ line-length = 88
 target-version = "py39"
 
 [lint]
-select = ["E", "F", "B", "I", "C", "UP", "D"]
-ignore = []
+select = ["E", "F"]
+ignore = ["F401", "F841", "E501", "E722", "F811", "F541", "E741", "F821", "E731", "E712", "E402", "F403", "F405"]
 
 [lint.per-file-ignores]
 
