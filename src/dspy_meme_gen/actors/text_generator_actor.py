@@ -10,7 +10,7 @@ import uuid
 
 from .core import Actor, ActorRef, Message, Request, Response, Event
 from .circuit_breaker import CircuitBreaker
-from ..agents.meme_generator import meme_generator as dspy_meme_gen
+from ..agents.meme_generator import get_meme_generator
 from ..config.config import settings
 
 
@@ -327,7 +327,7 @@ class TextGeneratorActor(Actor):
         try:
             # Use the DSPy meme generator
             result = await self.dspy_breaker.call(
-                dspy_meme_gen.generate_meme,
+                get_meme_generator().generate_meme,
                 topic=prompt,  # Using the optimized prompt as topic
                 format=format_name,
             )
