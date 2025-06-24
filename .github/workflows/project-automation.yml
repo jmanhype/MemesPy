@@ -1,0 +1,177 @@
+name: Project Automation
+
+on:
+  issues:
+    types: [opened, labeled, unlabeled]
+  pull_request:
+    types: [opened, closed, ready_for_review, converted_to_draft]
+    
+permissions:
+  issues: write
+  pull-requests: write
+  repository-projects: write
+
+jobs:
+  # Auto-label new issues
+  auto-label:
+    if: github.event_name == 'issues' && github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            // Add needs-triage label to new issues
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['needs-triage']
+            });
+            
+            // Auto-detect issue type based on title
+            const title = context.payload.issue.title.toLowerCase();
+            const labels = [];
+            
+            if (title.includes('[bug]')) labels.push('bug');
+            if (title.includes('[feature]')) labels.push('feature');
+            if (title.includes('[docs]')) labels.push('docs');
+            
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: labels
+              });
+            }
+
+  # Check Definition of Ready
+  check-ready:
+    if: github.event_name == 'issues' && github.event.action == 'labeled'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const labels = issue.labels.map(l => l.name);
+            
+            // Check if issue has required labels for "ready" status
+            const hasSize = labels.some(l => l.startsWith('size/'));
+            const hasPriority = labels.some(l => l.startsWith('p'));
+            const hasType = labels.some(l => ['feature', 'bug', 'enhancement'].includes(l));
+            
+            // Check if Definition of Ready checklist is complete
+            const body = issue.body || '';
+            const checklistRegex = /- \[x\]/gi;
+            const checklistItems = body.match(checklistRegex) || [];
+            const hasCompletedChecklist = checklistItems.length >= 3;
+            
+            if (hasSize && hasPriority && hasType && hasCompletedChecklist) {
+              // Remove needs-triage and add ready label
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  name: 'needs-triage'
+                });
+              } catch (e) {
+                // Label might not exist
+              }
+              
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: ['ready']
+              });
+              
+              // Add comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: '✅ This issue meets the Definition of Ready and can be worked on!'
+              });
+            }
+
+  # Link PR to issue and update status
+  pr-automation:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            
+            // Extract issue number from PR body or title
+            const issueRegex = /(closes|fixes|resolves) #(\d+)/i;
+            const match = (pr.body + ' ' + pr.title).match(issueRegex);
+            
+            if (match) {
+              const issueNumber = match[2];
+              
+              if (context.payload.action === 'opened') {
+                // Add in-progress label to linked issue
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  labels: ['in-progress']
+                });
+                
+                // Remove ready label
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    name: 'ready'
+                  });
+                } catch (e) {
+                  // Label might not exist
+                }
+              }
+              
+              if (context.payload.action === 'closed' && pr.merged) {
+                // Remove in-progress label
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    name: 'in-progress'
+                  });
+                } catch (e) {
+                  // Label might not exist
+                }
+              }
+            }
+
+  # Add size label to PR based on diff
+  pr-size:
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const additions = pr.additions;
+            const deletions = pr.deletions;
+            const total = additions + deletions;
+            
+            let size;
+            if (total < 50) size = 'size/S';
+            else if (total < 250) size = 'size/M';
+            else if (total < 1000) size = 'size/L';
+            else size = 'size/XL';
+            
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              labels: [size]
+            });
