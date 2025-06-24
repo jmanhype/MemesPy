@@ -1,7 +1,15 @@
 line-length = 88
 target-version = "py39"
+
+[lint]
 select = ["E", "F", "B", "I", "C", "UP", "D"]
 ignore = []
-per-file-ignores = {}
-pydocstyle = {"convention": "google"}
-isort = {"known-first-party": ["dspy_meme_gen"], "section-order": ["future", "standard-library", "third-party", "first-party", "local-folder"]}
+
+[lint.per-file-ignores]
+
+[lint.pydocstyle]
+convention = "google"
+
+[lint.isort]
+known-first-party = ["dspy_meme_gen"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
