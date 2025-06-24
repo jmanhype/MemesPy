@@ -392,16 +392,21 @@ class TestConcurrencySupervision:
         supervisor = setup_supervisor_with_system(Supervisor("supervisor"), mock_system)
 
         # Mock the concurrency controller
-        with patch("src.dspy_meme_gen.actors.adaptive_concurrency.AdaptiveConcurrencyController"):
-            child_ref = await supervisor.spawn_child(ConcurrencyLimitedActor, "concurrency_actor")
+        from unittest.mock import Mock
 
-            assert "concurrency_actor" in supervisor.children
-            concurrency_actor = supervisor.children["concurrency_actor"]
+        mock_controller = Mock()
 
-            # Verify it's the right type (supervisor wraps actors in SupervisedActor)
-            assert isinstance(concurrency_actor.actor, ConcurrencyLimitedActor)
+        child_ref = await supervisor.spawn_child(
+            ConcurrencyLimitedActor, "concurrency_actor", mock_controller
+        )
 
-            await supervisor.stop()
+        assert "concurrency_actor" in supervisor.children
+        concurrency_actor = supervisor.children["concurrency_actor"]
+
+        # Verify it's the right type (supervisor wraps actors in SupervisedActor)
+        assert isinstance(concurrency_actor.actor, ConcurrencyLimitedActor)
+
+        await supervisor.stop()
 
 
 class TestWorkStealingSupervision:

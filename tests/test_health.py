@@ -49,11 +49,14 @@ def mock_redis_client(mocker: "MockerFixture") -> aioredis.Redis:
         Mock Redis client instance
     """
     mock_redis = AsyncMock(spec=aioredis.Redis)
-    mock_redis.info.return_value = {
-        "server": {"redis_version": "6.2.6"},
-        "memory": {"used_memory_human": "1.00M"},
-        "clients": {"connected_clients": 1},
-    }
+    mock_redis.info = AsyncMock(
+        return_value={
+            "redis_version": "6.2.6",
+            "used_memory_human": "1.00M",
+            "connected_clients": 1,
+        }
+    )
+    mock_redis.ping = AsyncMock(return_value=True)
     return cast(aioredis.Redis, mock_redis)
 
 
