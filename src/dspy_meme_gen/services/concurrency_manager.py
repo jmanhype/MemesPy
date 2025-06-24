@@ -107,7 +107,7 @@ class ConcurrencyManager:
         """
         # Ensure cleanup task is running
         await self._ensure_cleanup_task()
-        
+
         # Check circuit breaker
         if self.circuit_open:
             if time.time() - self.circuit_open_time < self.circuit_recovery_timeout:
