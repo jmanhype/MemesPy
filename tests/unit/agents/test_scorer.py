@@ -13,10 +13,15 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def mock_scorer_response(mocker: "MockerFixture") -> Dict[str, float]:
+def mock_scorer_response() -> Any:
     """Mock the scorer response."""
-    return mocker.MagicMock(
-        humor_score=0.8, clarity_score=0.7, creativity_score=0.9, shareability_score=0.6
+    from unittest.mock import MagicMock
+    return MagicMock(
+        humor_score=0.8, 
+        clarity_score=0.7, 
+        creativity_score=0.9, 
+        shareability_score=0.6,
+        feedback="Good meme"
     )
 
 
@@ -30,10 +35,17 @@ def mock_meme_candidates() -> List[Dict[str, Any]]:
 
 
 @pytest.fixture
-def scoring_agent(mocker: "MockerFixture", mock_scorer_response: Dict[str, float]) -> ScoringAgent:
-    """Create a scoring agent with mocked scorer."""
+def scoring_agent(mock_dspy_config: Dict[str, Any], mock_scorer_response: Any) -> ScoringAgent:
+    """Create a scoring agent with mocked DSPy components."""
+    # Configure the mock ChainOfThought to return our mock response
+    mock_dspy_config["chain_of_thought"].return_value.return_value = mock_scorer_response
+    
+    # Create the agent - it will use the mocked DSPy components
     agent = ScoringAgent()
-    mocker.patch.object(agent.scorer, "__call__", return_value=mock_scorer_response)
+    
+    # Ensure the scorer's call returns our mock response
+    agent.scorer.return_value = mock_scorer_response
+    
     return agent
 
 
@@ -56,10 +68,13 @@ def test_meme_score_creation() -> None:
     assert score.feedback == "Test feedback"
 
 
-def test_scoring_agent_initialization() -> None:
+def test_scoring_agent_initialization(mock_dspy_config: Dict[str, Any]) -> None:
     """Test initializing the scoring agent."""
+    # The agent should initialize with mocked DSPy components
     agent = ScoringAgent()
     assert agent.scorer is not None
+    # Verify that the scorer is using the mocked ChainOfThought
+    assert mock_dspy_config["chain_of_thought"].called
 
 
 def test_scoring_memes(
@@ -138,26 +153,41 @@ def test_scoring_with_all_checks(
         assert pytest.approx(meme["score"].final_score, 0.001) == 0.755 * 0.7 * 0.8
 
 
-def test_memes_sorted_by_score(scoring_agent: ScoringAgent, mocker: "MockerFixture") -> None:
+def test_memes_sorted_by_score(mock_dspy_config: Dict[str, Any]) -> None:
     """Test that memes are sorted by score descending."""
+    from unittest.mock import MagicMock
+    
     # Create mock responses with different scores
     mock_responses = [
-        mocker.MagicMock(
-            humor_score=0.5, clarity_score=0.5, creativity_score=0.5, shareability_score=0.5
+        MagicMock(
+            humor_score=0.5, 
+            clarity_score=0.5, 
+            creativity_score=0.5, 
+            shareability_score=0.5,
+            feedback="Average meme"
         ),
-        mocker.MagicMock(
-            humor_score=0.9, clarity_score=0.9, creativity_score=0.9, shareability_score=0.9
+        MagicMock(
+            humor_score=0.9, 
+            clarity_score=0.9, 
+            creativity_score=0.9, 
+            shareability_score=0.9,
+            feedback="Excellent meme"
         ),
     ]
-
-    mocker.patch.object(scoring_agent.scorer, "__call__", side_effect=mock_responses)
+    
+    # Configure mock to return different responses for each call
+    mock_dspy_config["chain_of_thought"].return_value.return_value = MagicMock(side_effect=mock_responses)
+    
+    # Create agent with the mocked DSPy
+    agent = ScoringAgent()
+    agent.scorer.side_effect = mock_responses
 
     meme_candidates = [
         {"caption": "Low score", "image_url": "http://example.com/low.jpg"},
         {"caption": "High score", "image_url": "http://example.com/high.jpg"},
     ]
 
-    scored_memes = scoring_agent.forward(meme_candidates)
+    scored_memes = agent.forward(meme_candidates)
 
     assert len(scored_memes) == 2
     assert scored_memes[0]["caption"] == "High score"

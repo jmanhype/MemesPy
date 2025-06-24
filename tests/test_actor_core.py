@@ -131,6 +131,8 @@ class TestActor(Actor):
             return result
         except Exception as e:
             self.logger.error(f"Error handling message {message.id}: {e}", exc_info=True)
+            # Call on_error to track errors in tests
+            await self.on_error(e)
             raise
 
     async def handle_testrequest(self, message: TestRequest) -> TestResponse:
@@ -281,11 +283,11 @@ class TestActorSystem:
         # Register actor
         actor_ref = await system.register_actor(actor)
 
-        assert isinstance(actor_ref, str)
-        assert actor_ref in system.actors
-        assert system.actors[actor_ref] == actor
+        assert isinstance(actor_ref, ActorRef)
+        assert actor.name in system.actors
+        assert system.actors[actor.name] == actor
 
-        await system.shutdown()
+        await system.stop()
 
     @pytest.mark.asyncio
     async def test_actor_unregistration(self):
@@ -295,11 +297,11 @@ class TestActorSystem:
 
         # Register then unregister
         actor_ref = await system.register_actor(actor)
-        await system.unregister_actor(actor_ref)
+        await system.unregister_actor(actor.name)
 
-        assert actor_ref not in system.actors
+        assert actor.name not in system.actors
 
-        await system.shutdown()
+        await system.stop()
 
     @pytest.mark.asyncio
     async def test_system_shutdown(self):
@@ -314,7 +316,7 @@ class TestActorSystem:
             actors.append(actor)
 
         # Shutdown system
-        await system.shutdown()
+        await system.stop()
 
         # All actors should be stopped
         for actor in actors:
@@ -330,7 +332,7 @@ class TestActorSystem:
         with pytest.raises(RuntimeError, match="Startup failure"):
             await system.register_actor(failing_actor)
 
-        await system.shutdown()
+        await system.stop()
 
 
 class TestMailbox:

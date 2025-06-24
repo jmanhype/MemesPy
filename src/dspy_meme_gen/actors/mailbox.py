@@ -81,7 +81,8 @@ class ActorMailbox:
             return message
 
         except asyncio.CancelledError:
-            return None
+            # Re-raise CancelledError to allow proper timeout handling
+            raise
 
     async def _handle_overflow(self, message: Message) -> bool:
         """Handle mailbox overflow based on strategy."""
