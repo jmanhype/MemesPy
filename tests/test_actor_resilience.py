@@ -129,10 +129,10 @@ class ResourceConstrainedActor(Actor):
         pass
 
 
-@pytest.mark.asyncio
 class TestChaosEngineering:
     """Chaos engineering tests for actor system."""
 
+    @pytest.mark.asyncio
     async def test_random_actor_failures(self, mock_system):
         """Test system resilience with random actor failures."""
         restart_policy = RestartPolicy(max_restarts=10)
@@ -178,6 +178,7 @@ class TestChaosEngineering:
 
         await supervisor.stop()
 
+    @pytest.mark.asyncio
     async def test_network_partition_simulation(self, mock_system):
         """Simulate network partitions between actors."""
         supervisor = setup_supervisor_with_system(Supervisor("network_supervisor"), mock_system)
@@ -220,10 +221,10 @@ class TestChaosEngineering:
         await supervisor.stop()
 
 
-@pytest.mark.asyncio
 class TestResourceConstraints:
     """Test actor behavior under resource constraints."""
 
+    @pytest.mark.asyncio
     async def test_memory_constraint_handling(self, mock_system):
         """Test actor behavior when hitting memory limits."""
         restart_policy = RestartPolicy(max_restarts=5)
@@ -261,6 +262,7 @@ class TestResourceConstraints:
 
         await supervisor.stop()
 
+    @pytest.mark.asyncio
     async def test_concurrent_resource_pressure(self, mock_system):
         """Test multiple actors under concurrent resource pressure."""
         restart_policy = RestartPolicy(max_restarts=10)
@@ -306,10 +308,10 @@ class TestResourceConstraints:
         await supervisor.stop()
 
 
-@pytest.mark.asyncio
 class TestFaultInjection:
     """Systematic fault injection tests."""
 
+    @pytest.mark.asyncio
     async def test_supervisor_failure_cascade(self, mock_system):
         """Test how failures cascade through supervision hierarchy."""
         from src.dspy_meme_gen.actors.supervisor import RestartStrategy
@@ -353,6 +355,7 @@ class TestFaultInjection:
 
         await root_supervisor.stop()
 
+    @pytest.mark.asyncio
     async def test_message_queue_overflow(self, mock_system):
         """Test behavior when message queues overflow."""
         supervisor = setup_supervisor_with_system(Supervisor("overflow_supervisor"), mock_system)
@@ -393,10 +396,10 @@ class TestFaultInjection:
         await supervisor.stop()
 
 
-@pytest.mark.asyncio
 class TestRecoveryMechanisms:
     """Test system recovery after failures."""
 
+    @pytest.mark.asyncio
     async def test_graceful_degradation(self, mock_system):
         """Test graceful degradation when actors fail."""
         restart_policy = RestartPolicy(max_restarts=2)
@@ -450,6 +453,7 @@ class TestRecoveryMechanisms:
 
         await supervisor.stop()
 
+    @pytest.mark.asyncio
     async def test_system_recovery_time(self, mock_system):
         """Test how quickly system recovers from failures."""
         restart_policy = RestartPolicy(max_restarts=5)

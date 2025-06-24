@@ -102,10 +102,10 @@ class FailingActor(Actor):
         pass
 
 
-@pytest.mark.asyncio
 class TestSupervisorBasics:
     """Test basic supervisor functionality."""
 
+    @pytest.mark.asyncio
     async def test_supervisor_creation(self, mock_system):
         """Test supervisor can be created with proper configuration."""
         supervisor = setup_supervisor_with_system(Supervisor("test_supervisor"), mock_system)
@@ -117,6 +117,7 @@ class TestSupervisorBasics:
 
         await supervisor.stop()
 
+    @pytest.mark.asyncio
     async def test_child_spawning(self, mock_system):
         """Test supervisor can spawn and track child actors."""
         supervisor = setup_supervisor_with_system(Supervisor("supervisor"), mock_system)
@@ -133,6 +134,7 @@ class TestSupervisorBasics:
 
         await supervisor.stop()
 
+    @pytest.mark.asyncio
     async def test_multiple_children(self, mock_system):
         """Test supervisor can manage multiple children."""
         supervisor = setup_supervisor_with_system(Supervisor("supervisor"), mock_system)
@@ -153,10 +155,10 @@ class TestSupervisorBasics:
         await supervisor.stop()
 
 
-@pytest.mark.asyncio
 class TestSupervisionStrategy:
     """Test different supervision strategies."""
 
+    @pytest.mark.asyncio
     async def test_one_for_one_strategy(self, mock_system):
         """Test one-for-one supervision strategy."""
         supervisor = setup_supervisor_with_system(
@@ -190,6 +192,7 @@ class TestSupervisionStrategy:
 
         await supervisor.stop()
 
+    @pytest.mark.asyncio
     async def test_one_for_all_strategy(self, mock_system):
         """Test one-for-all supervision strategy."""
         supervisor = setup_supervisor_with_system(
@@ -221,10 +224,10 @@ class TestSupervisionStrategy:
         await supervisor.stop()
 
 
-@pytest.mark.asyncio
 class TestErrorHandling:
     """Test error handling and recovery mechanisms."""
 
+    @pytest.mark.asyncio
     async def test_child_failure_handling(self, mock_system):
         """Test supervisor handles child failures properly."""
         supervisor = setup_supervisor_with_system(Supervisor("supervisor"), mock_system)
@@ -248,6 +251,7 @@ class TestErrorHandling:
 
         await supervisor.stop()
 
+    @pytest.mark.asyncio
     async def test_max_restart_limit(self, mock_system):
         """Test max restart limit enforcement."""
         restart_policy = RestartPolicy(max_restarts=2, within_time_range=1.0)
@@ -276,6 +280,7 @@ class TestErrorHandling:
 
         await supervisor.stop()
 
+    @pytest.mark.asyncio
     async def test_escalation_to_parent(self, mock_system):
         """Test error escalation to parent supervisor."""
         root_supervisor = setup_supervisor_with_system(Supervisor("root"), mock_system)
@@ -296,10 +301,10 @@ class TestErrorHandling:
         await root_supervisor.stop()
 
 
-@pytest.mark.asyncio
 class TestMemoryManagement:
     """Test memory management and leak prevention."""
 
+    @pytest.mark.asyncio
     async def test_weak_reference_cleanup(self, mock_system):
         """Test that weak references prevent circular dependencies."""
         supervisor = setup_supervisor_with_system(Supervisor("supervisor"), mock_system)
@@ -326,6 +331,7 @@ class TestMemoryManagement:
         # (This test mainly ensures the weak reference pattern is in place)
         assert hasattr(child_actor.actor, "_handle_message")
 
+    @pytest.mark.asyncio
     async def test_child_cleanup_on_shutdown(self, mock_system):
         """Test that children are properly cleaned up on shutdown."""
         supervisor = setup_supervisor_with_system(Supervisor("supervisor"), mock_system)
@@ -349,10 +355,10 @@ class TestMemoryManagement:
             assert child2.actor.shutdown_called
 
 
-@pytest.mark.asyncio
 class TestConcurrencySupervision:
     """Test supervision of adaptive concurrency actors."""
 
+    @pytest.mark.asyncio
     async def test_adaptive_concurrency_supervision(self, mock_system):
         """Test supervising adaptive concurrency actors."""
         supervisor = setup_supervisor_with_system(Supervisor("supervisor"), mock_system)
@@ -372,10 +378,10 @@ class TestConcurrencySupervision:
             await supervisor.stop()
 
 
-@pytest.mark.asyncio
 class TestWorkStealingSupervision:
     """Test supervision of work stealing pool actors."""
 
+    @pytest.mark.asyncio
     async def test_work_stealing_worker_supervision(self, mock_system):
         """Test supervising work stealing worker actors."""
         supervisor = setup_supervisor_with_system(Supervisor("supervisor"), mock_system)
@@ -392,10 +398,10 @@ class TestWorkStealingSupervision:
         await supervisor.stop()
 
 
-@pytest.mark.asyncio
 class TestSupervisionIntegration:
     """Integration tests for supervision system."""
 
+    @pytest.mark.asyncio
     async def test_hierarchical_supervision(self, mock_system):
         """Test hierarchical supervision structure."""
         root_supervisor = setup_supervisor_with_system(
@@ -420,6 +426,7 @@ class TestSupervisionIntegration:
 
         await root_supervisor.stop()
 
+    @pytest.mark.asyncio
     async def test_supervision_under_load(self, mock_system):
         """Test supervision system under concurrent load."""
         restart_policy = RestartPolicy(max_restarts=10)

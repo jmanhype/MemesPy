@@ -106,10 +106,10 @@ class FailingActor(Actor):
         pass
 
 
-@pytest.mark.asyncio
 class TestActorBasics:
     """Test basic actor functionality."""
 
+    @pytest.mark.asyncio
     async def test_actor_creation(self):
         """Test actor can be created with proper state."""
         actor = TestActor("test_actor")
@@ -119,6 +119,7 @@ class TestActorBasics:
         assert actor.mailbox is not None
         assert actor.logger is not None
 
+    @pytest.mark.asyncio
     async def test_actor_lifecycle(self):
         """Test actor start/stop lifecycle."""
         actor = TestActor("lifecycle_test")
@@ -133,6 +134,7 @@ class TestActorBasics:
         assert actor.running is False
         assert actor.stop_called is True
 
+    @pytest.mark.asyncio
     async def test_message_handling(self):
         """Test basic message handling."""
         actor = TestActor("message_test")
@@ -149,6 +151,7 @@ class TestActorBasics:
 
         await actor.stop()
 
+    @pytest.mark.asyncio
     async def test_error_handling(self):
         """Test error handling in message processing."""
         actor = TestActor("error_test")
@@ -164,6 +167,7 @@ class TestActorBasics:
 
         await actor.stop()
 
+    @pytest.mark.asyncio
     async def test_concurrent_message_processing(self):
         """Test handling multiple concurrent messages."""
         actor = TestActor("concurrent_test")
@@ -185,10 +189,10 @@ class TestActorBasics:
         await actor.stop()
 
 
-@pytest.mark.asyncio
 class TestActorSystem:
     """Test actor system functionality."""
 
+    @pytest.mark.asyncio
     async def test_actor_registration(self):
         """Test registering actors with the system."""
         system = ActorSystem("test_system")
@@ -203,6 +207,7 @@ class TestActorSystem:
 
         await system.shutdown()
 
+    @pytest.mark.asyncio
     async def test_actor_unregistration(self):
         """Test unregistering actors from the system."""
         system = ActorSystem("test_system")
@@ -216,6 +221,7 @@ class TestActorSystem:
 
         await system.shutdown()
 
+    @pytest.mark.asyncio
     async def test_system_shutdown(self):
         """Test clean system shutdown."""
         system = ActorSystem("shutdown_test")
@@ -234,6 +240,7 @@ class TestActorSystem:
         for actor in actors:
             assert actor.stop_called is True
 
+    @pytest.mark.asyncio
     async def test_failing_actor_registration(self):
         """Test handling actors that fail on startup."""
         system = ActorSystem("fail_test")
@@ -246,10 +253,10 @@ class TestActorSystem:
         await system.shutdown()
 
 
-@pytest.mark.asyncio
 class TestMailbox:
     """Test mailbox functionality."""
 
+    @pytest.mark.asyncio
     async def test_mailbox_creation(self):
         """Test mailbox creation with configuration."""
         mailbox = ActorMailbox(capacity=100, overflow_strategy=OverflowStrategy.DROP_OLDEST)
@@ -258,6 +265,7 @@ class TestMailbox:
         assert mailbox.overflow_strategy == OverflowStrategy.DROP_OLDEST
         assert mailbox.size == 0
 
+    @pytest.mark.asyncio
     async def test_message_queuing(self):
         """Test queuing and retrieving messages."""
         mailbox = ActorMailbox()
@@ -273,6 +281,7 @@ class TestMailbox:
         assert received == message
         assert mailbox.size == 0
 
+    @pytest.mark.asyncio
     async def test_mailbox_overflow(self):
         """Test mailbox behavior when full."""
         mailbox = ActorMailbox(capacity=2)
@@ -290,6 +299,7 @@ class TestMailbox:
         except asyncio.TimeoutError:
             pass  # Expected for blocking mailbox
 
+    @pytest.mark.asyncio
     async def test_mailbox_timeout(self):
         """Test mailbox get timeout."""
         mailbox = ActorMailbox()
@@ -299,10 +309,10 @@ class TestMailbox:
             await asyncio.wait_for(mailbox.get(), timeout=0.1)
 
 
-@pytest.mark.asyncio
 class TestActorCommunication:
     """Test actor-to-actor communication."""
 
+    @pytest.mark.asyncio
     async def test_actor_to_actor_messaging(self):
         """Test direct actor communication."""
         sender = TestActor("sender")
@@ -321,6 +331,7 @@ class TestActorCommunication:
         await sender.stop()
         await receiver.stop()
 
+    @pytest.mark.asyncio
     async def test_event_broadcasting(self):
         """Test event broadcasting to multiple actors."""
         actors = []
@@ -349,10 +360,10 @@ class TestActorCommunication:
             await actor.stop()
 
 
-@pytest.mark.asyncio
 class TestActorPerformance:
     """Test actor performance characteristics."""
 
+    @pytest.mark.asyncio
     async def test_high_throughput_messaging(self):
         """Test actor performance under high message load."""
         actor = TestActor("performance_test")
@@ -382,6 +393,7 @@ class TestActorPerformance:
 
         await actor.stop()
 
+    @pytest.mark.asyncio
     async def test_memory_usage(self):
         """Test memory usage and cleanup."""
         actor = TestActor("memory_test")
