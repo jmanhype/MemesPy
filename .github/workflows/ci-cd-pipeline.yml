@@ -214,9 +214,8 @@ jobs:
             -e DATABASE_URL=postgresql://postgres:postgres@postgres:5432/memespy_integration \
             -e ENVIRONMENT=test \
             -e OPENAI_API_KEY=dummy-key-for-tests \
-            --entrypoint pytest \
             ${{ needs.docker-build.outputs.image-tag }} \
-            tests/integration/ -v --no-cov
+            sh -c "cd /app && python -m pytest tests/integration/ -v --no-cov"
 
   # Stage 5: Deploy (only on main branch)
   deploy-staging:
