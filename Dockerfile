@@ -1,5 +1,5 @@
 # Build stage
-FROM python:3.10-slim as builder
+FROM python:3.10-slim AS builder
 
 WORKDIR /app
 
@@ -64,14 +64,21 @@ USER memespy
 
 # Add user's local bin to PATH and set PYTHONPATH
 ENV PATH=/home/memespy/.local/bin:$PATH \
-    PYTHONPATH=/app/src:$PYTHONPATH
+    PYTHONPATH=/app/src
 
 # Expose port
 EXPOSE 8081
+
+# Copy entrypoint script
+COPY --chown=memespy:memespy docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8081/api/health || exit 1
 
-# Run the application
-CMD ["python", "-m", "uvicorn", "src.dspy_meme_gen.api.main:app", "--host", "0.0.0.0", "--port", "8081"] 
+# Set entrypoint
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+# Default command (can be overridden)
+CMD [] 
