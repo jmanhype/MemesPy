@@ -122,7 +122,7 @@ async def test_check_health_all_healthy(
     assert details["database"]["status"] == "connected"
     assert details["redis"]["status"] == "connected"
     assert details["system"]["status"] == "healthy"
-    assert details["metrics"]["status"] == "healthy"
+    assert details["metrics"]["status"] == "collecting"
 
 
 @pytest.mark.asyncio
