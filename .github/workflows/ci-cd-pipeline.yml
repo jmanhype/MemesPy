@@ -213,8 +213,10 @@ jobs:
             --network ${{ job.services.postgres.network }} \
             -e DATABASE_URL=postgresql://postgres:postgres@postgres:5432/memespy_integration \
             -e ENVIRONMENT=test \
+            -e OPENAI_API_KEY=dummy-key-for-tests \
+            --entrypoint pytest \
             ${{ needs.docker-build.outputs.image-tag }} \
-            pytest tests/integration/ -v
+            tests/integration/ -v
 
   # Stage 5: Deploy (only on main branch)
   deploy-staging:
