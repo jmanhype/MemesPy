@@ -62,8 +62,9 @@ RUN mkdir -p /var/log/dspy_meme_gen \
 # Switch to non-root user
 USER memespy
 
-# Add user's local bin to PATH
-ENV PATH=/home/memespy/.local/bin:$PATH
+# Add user's local bin to PATH and set PYTHONPATH
+ENV PATH=/home/memespy/.local/bin:$PATH \
+    PYTHONPATH=/app/src:$PYTHONPATH
 
 # Expose port
 EXPOSE 8081
