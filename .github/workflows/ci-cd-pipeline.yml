@@ -216,7 +216,7 @@ jobs:
             -e OPENAI_API_KEY=dummy-key-for-tests \
             --entrypoint pytest \
             ${{ needs.docker-build.outputs.image-tag }} \
-            tests/integration/ -v
+            tests/integration/ -v --no-cov
 
   # Stage 5: Deploy (only on main branch)
   deploy-staging:
