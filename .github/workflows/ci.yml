@@ -71,7 +71,8 @@ jobs:
 
   deploy-staging:
     needs: test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Temporarily disabled until AWS credentials are configured
+    if: false
     runs-on: ubuntu-latest
     environment: staging
 
@@ -104,7 +105,8 @@ jobs:
 
   deploy-production:
     needs: deploy-staging
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Temporarily disabled until AWS credentials are configured
+    if: false
     runs-on: ubuntu-latest
     environment: production
 
