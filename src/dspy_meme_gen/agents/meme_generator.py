@@ -114,7 +114,7 @@ class MemeGenerator:
 _meme_generator = None
 
 
-def get_meme_generator():
+def get_meme_generator() -> "MemeGenerator":
     """Get or create the singleton MemeGenerator instance."""
     global _meme_generator
     if _meme_generator is None:

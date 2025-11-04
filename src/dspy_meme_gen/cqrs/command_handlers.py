@@ -520,7 +520,7 @@ class AsyncMemeRefinementCommandHandler(CommandHandler[UUID]):
 command_handlers: Dict[str, CommandHandler] = {}
 
 
-def register_command_handler(command_type: str, handler: CommandHandler):
+def register_command_handler(command_type: str, handler: CommandHandler) -> None:
     """Register a command handler."""
     command_handlers[command_type] = handler
 

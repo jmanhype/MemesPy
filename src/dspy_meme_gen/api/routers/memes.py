@@ -3,6 +3,7 @@
 import uuid
 import json
 import time
+import logging
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy import select
@@ -36,6 +37,9 @@ get_system = lambda: None
 health_check = lambda: {"status": "ok"}
 
 router = APIRouter()
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 # Initialize our DSPy modules (legacy)
 meme_predictor = MemePredictor()
@@ -417,7 +421,9 @@ async def generate_meme(
                 )
                 db.add(generation_log)
                 db.commit()
-            except:
+            except Exception as log_error:
+                # Log the error but don't fail the main error handling
+                logger.debug(f"Failed to log generation error: {log_error}")
                 pass
 
             raise HTTPException(

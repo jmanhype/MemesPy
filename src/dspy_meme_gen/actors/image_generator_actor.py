@@ -380,7 +380,8 @@ class ImageGeneratorActor(Actor):
                 # This would typically return a URL, but we need bytes
                 # For now, raise the original error
                 raise e
-            except:
+            except Exception:
+                # Re-raise the original error if fallback also fails
                 raise e
 
     async def _add_text_overlay(self, image_data: bytes, text: str, format_name: str) -> bytes:

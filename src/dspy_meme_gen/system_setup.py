@@ -217,14 +217,16 @@ async def health_check() -> dict:
             # Try a simple query to verify connection
             await event_store.get_events_by_type("health_check", limit=1)
             health["event_store"] = True
-        except:
+        except Exception as e:
+            logging.getLogger(__name__).debug(f"Event store health check failed: {e}")
             health["event_store"] = False
 
         # Check event bus
         try:
             event_bus = await get_event_bus()
             health["event_bus"] = event_bus._running
-        except:
+        except Exception as e:
+            logging.getLogger(__name__).debug(f"Event bus health check failed: {e}")
             health["event_bus"] = False
 
         health["overall"] = all(

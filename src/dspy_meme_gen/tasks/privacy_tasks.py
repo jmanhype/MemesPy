@@ -416,11 +416,11 @@ class PrivacyTaskScheduler:
 privacy_scheduler = PrivacyTaskScheduler()
 
 
-def start_privacy_tasks():
+def start_privacy_tasks() -> None:
     """Start privacy task scheduler."""
     privacy_scheduler.start()
 
 
-def stop_privacy_tasks():
+def stop_privacy_tasks() -> None:
     """Stop privacy task scheduler."""
     privacy_scheduler.stop()
